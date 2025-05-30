@@ -1,0 +1,19 @@
+<resources>
+    <string name="app_name">TwinMindAI</string>
+    <string name="default_web_client_id">824470750323-v549rhj8mvgnj0gh5e4gfl84el53hagp.apps.googleusercontent.com</string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="continue_with_apple">Continue with Apple</string>
+    <string name="_15_9_100_hours">15.9 / 100 hours</string>
+    <string name="brainimage">BrainImage</string>
+    <string name="building_your_second_brain">Building Your Second Brain</string>
+    <string name="capture_100_hours_to_unlock_features">Capture 100 Hours to Unlock Features</string>
+    <string name="capture">Capture</string>
+    <string name="ask_all_memories">Ask All Memories</string>
+    <string name="search_icon">search icon</string>
+    <string name="questions">Questions</string>
+    <string name="calendar">Calendar</string>
+    <string name="memories">Memories</string>
+    <string name="help">Help</string>
+    <string name="title_activity_audio_feature">AudioFeature</string>
+</resources>

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/gradient_background"
+    android:gravity="center"
+    android:fitsSystemWindows="true"
+    android:layout_gravity="center"
+    android:padding="@dimen/dimen_32dp">
+
+    <!-- Logo Section -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+
+        android:layout_marginBottom="0dp"
+        android:gravity="bottom"
+
+        android:orientation="vertical">
+
+        <ImageView
+            android:gravity="bottom"
+            android:layout_gravity="bottom"
+            android:layout_width="@dimen/dimen_250dp"
+            android:layout_height="@dimen/dimen_250dp"
+            android:src="@drawable/twinmindlogo" />
+
+    </LinearLayout>
+
+    <!-- Spacer to push buttons to bottom -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- Login Buttons Section -->
+    <LinearLayout
+        android:layout_marginEnd="@dimen/dimen_15dp"
+        android:layout_marginStart="@dimen/dimen_15dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginBottom="@dimen/dimen_40dp">
+
+        <!-- Continue with Google Button -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/btnContinueWithGoogle"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/dimen_56dp"
+            android:layout_marginBottom="@dimen/dimen_16dp"
+            app:cardCornerRadius="@dimen/dimen_28dp"
+            app:cardElevation="2dp"
+
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+
+                android:gravity="center"
+                android:background="@android:color/white"
+                android:paddingHorizontal="@dimen/dimen_20dp">
+
+                <ImageView
+                    android:layout_width="@dimen/dimen_24dp"
+                    android:layout_height="@dimen/dimen_24dp"
+                    android:src="@drawable/ic_googleicon"
+                    android:layout_marginEnd="@dimen/dimen_12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+
+                    android:text="Continue with Google"
+                    android:textColor="#333333"
+                    android:textSize="@dimen/dimen_16sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Continue with Apple Button -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/btnContinueWithApple"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/dimen_56dp"
+            app:cardCornerRadius="@dimen/dimen_28dp"
+            app:cardElevation="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?android:attr/selectableItemBackground">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:background="@android:color/white"
+                android:paddingHorizontal="@dimen/dimen_20dp">
+
+                <ImageView
+                    android:layout_width="@dimen/dimen_24dp"
+                    android:layout_height="@dimen/dimen_24dp"
+                    android:src="@drawable/ic_appleicon"
+                    android:layout_marginEnd="@dimen/dimen_12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+
+                    android:text="@string/continue_with_apple"
+                    android:textColor="#333333"
+                    android:textSize="@dimen/dimen_16sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:gravity="center" />
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+    </LinearLayout>
+
+    <!-- Footer Links -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/tvPrivacyPolicy"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/privacy_policy"
+            android:textColor="#CCFFFFFF"
+            android:textSize="@dimen/dimen_14sp"
+            android:fontFamily="sans-serif"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground"
+            android:padding="@dimen/dimen_8dp" />
+
+        <View
+            android:layout_width="@dimen/dimen_1dp"
+            android:layout_height="@dimen/dimen_16dp"
+            android:layout_marginHorizontal="@dimen/dimen_16dp" />
+
+        <TextView
+            android:id="@+id/tvTermsOfService"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/terms_of_service"
+            android:textColor="#CCFFFFFF"
+            android:textSize="@dimen/dimen_14sp"
+            android:fontFamily="sans-serif"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?android:attr/selectableItemBackground"
+            android:padding="@dimen/dimen_8dp" />
+
+    </LinearLayout>
+
+</LinearLayout>
