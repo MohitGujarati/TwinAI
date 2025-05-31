@@ -68,6 +68,14 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:32.1.1"))
     implementation("com.google.firebase:firebase-auth-ktx")
 
+    implementation ("androidx.activity:activity-ktx:1.2.0") // or newer
+    implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.0") // or newer
+
+    //Motion layout
+    implementation("androidx.constraintlayout:constraintlayout:2.2.1")
+    // To use constraintlayout in compose
+    implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
+
     // ✅ Google Sign-In (latest stable)
     implementation("com.google.android.gms:play-services-auth:21.3.0")
 

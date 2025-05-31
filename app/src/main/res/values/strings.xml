@@ -68,5 +68,7 @@
     <string name="refer_a_friend">REFER A FRIEND</string>
     <string name="refer_friend">Refer Friend</string>
     <string name="settings2">Settings</string>
+    <string name="text_will_appear_here_onces_recording_is_stoped">Text will appear here onces recording is stoped !</string>
+    <string name="close">close</string>
 
 </resources>
