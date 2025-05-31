@@ -1,6 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!-- Primary Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="background_primary">#F8F9FA</color>
+    <color name="accent_blue">#007AFF</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#1D1D1F</color>
+    <color name="text_secondary">#6D6D80</color>
+    <color name="text_tertiary">#8E8E93</color>
+
+    <!-- Button Colors -->
+    <color name="button_secondary_bg">#F2F2F7</color>
+    <color name="button_danger_bg">#FF3B30</color>
+
+    <!-- Tab Colors -->
+    <color name="tab_container_bg">#F2F2F7</color>
+    <color name="tab_border">#E5E5EA</color>
+
+    <!-- Recording Status -->
+    <color name="recording_bg">#F2F2F7</color>
+    <color name="recording_dot">#FF3B30</color>
+
+    <!-- Card Colors -->
+    <color name="card_border">#E5E5EA</color>
+    <color name="card_shadow">#1A000000</color>
+
+    <!-- Legacy Colors (for compatibility) -->
     <color name="Cuswhite">#F8F9FA</color>
+    <color name="red">#FF3B30</color>
+
+    <!-- Additional System Colors -->
+    <color name="green">#34C759</color>
+    <color name="orange">#FF9500</color>
+    <color name="yellow">#FFCC00</color>
+    <color name="purple">#AF52DE</color>
+    <color name="pink">#FF2D92</color>
+    <color name="teal">#5AC8FA</color>
+    <color name="indigo">#5856D6</color>
+
+    <!-- Surface Colors -->
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_variant">#F2F2F7</color>
+    <color name="outline">#C7C7CC</color>
+    <color name="outline_variant">#E5E5EA</color>
+
+    <!-- Error Colors -->
+    <color name="error">#FF3B30</color>
+    <color name="on_error">#FFFFFF</color>
+
+    <!-- Success Colors -->
+    <color name="success">#34C759</color>
+    <color name="warning">#FF9500</color>
 </resources>

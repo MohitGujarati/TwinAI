@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true"
+    android:background="@color/background_primary">
+
+    <!-- Top Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/dimen_64dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@color/white"
+        android:paddingStart="@dimen/dimen_20dp"
+        android:paddingEnd="@dimen/dimen_20dp"
+        android:elevation="@dimen/dimen_1dp">
+
+        <ImageView
+            android:id="@+id/backBtn"
+            android:layout_width="@dimen/dimen_24dp"
+            android:layout_height="@dimen/dimen_24dp"
+            android:src="@drawable/round_arrow_back_24"
+            android:contentDescription="@string/back"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="@dimen/dimen_4dp"
+            app:tint="@color/text_primary" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/back"
+            android:textSize="@dimen/dimen_16sp"
+            android:textColor="@color/text_primary"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginStart="@dimen/dimen_12dp" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- Recording Status Indicator -->
+        <LinearLayout
+
+            android:id="@+id/LL_recodingBlock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/recording_status_bg"
+            android:paddingHorizontal="@dimen/dimen_12dp"
+            android:paddingVertical="@dimen/dimen_6dp">
+
+            <View
+                android:layout_width="@dimen/dimen_8dp"
+                android:layout_height="@dimen/dimen_8dp"
+                android:background="@drawable/recording_dot"
+                android:layout_marginEnd="@dimen/dimen_8dp" />
+
+            <TextView
+                android:id="@+id/tv_recording_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="00:14"
+                android:textSize="@dimen/dimen_14sp"
+                android:textColor="@color/text_secondary"
+                android:fontFamily="monospace" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/shareBtn"
+            android:layout_width="@dimen/dimen_24dp"
+            android:layout_height="@dimen/dimen_24dp"
+            android:src="@drawable/ic_share"
+            android:layout_marginStart="@dimen/dimen_16dp"
+            android:contentDescription="@string/share"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="@dimen/dimen_4dp"
+            app:tint="@color/text_primary" />
+    </LinearLayout>
+
+    <!-- Content Container -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="@dimen/dimen_100dp">
+
+            <!-- Title Section -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/dimen_20dp"
+                android:background="@color/white">
+
+                <TextView
+                    android:id="@+id/tv_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/untitled"
+                    android:textSize="@dimen/dimen_32sp"
+                    android:textColor="@color/text_primary"
+                    android:fontFamily="sans-serif-medium"
+                    android:lineSpacingExtra="@dimen/dimen_4dp" />
+
+                <TextView
+                    android:id="@+id/tv_userLocation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="May 30, 2025 • 10:05 AM • Jersey City, NJ"
+                    android:textSize="@dimen/dimen_14sp"
+                    android:textColor="@color/text_secondary"
+                    android:fontFamily="sans-serif"
+                    android:layout_marginTop="@dimen/dimen_8dp" />
+            </LinearLayout>
+
+            <!-- Modern Tab Layout -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@color/white"
+                android:paddingHorizontal="@dimen/dimen_20dp"
+                android:paddingBottom="@dimen/dimen_16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@drawable/tab_container_bg"
+                    android:padding="@dimen/dimen_4dp">
+
+                    <TextView
+                        android:id="@+id/tab_questions"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/dimen_36dp"
+                        android:layout_weight="1"
+                        android:text="@string/questions"
+                        android:textSize="@dimen/dimen_14sp"
+                        android:textColor="@color/text_secondary"
+                        android:fontFamily="sans-serif-medium"
+                        android:gravity="center"
+                        android:background="@drawable/tab_unselected_bg"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <TextView
+                        android:id="@+id/tab_notes"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/dimen_36dp"
+                        android:layout_weight="1"
+                        android:text="@string/notes"
+                        android:textSize="@dimen/dimen_14sp"
+                        android:textColor="@color/accent_blue"
+                        android:fontFamily="sans-serif-condensed-medium"
+                        android:gravity="center"
+                        android:background="@drawable/tab_selected_bg"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <TextView
+                        android:id="@+id/tab_transcript"
+                        android:layout_width="0dp"
+                        android:layout_height="@dimen/dimen_36dp"
+                        android:layout_weight="1"
+                        android:text="@string/transcript"
+                        android:textSize="@dimen/dimen_14sp"
+                        android:textColor="@color/text_secondary"
+                        android:fontFamily="sans-serif-condensed-medium"
+                        android:gravity="center"
+                        android:background="@drawable/tab_unselected_bg"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Tab Content Container -->
+            <FrameLayout
+                android:id="@+id/tabContentContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/dimen_8dp"
+                android:background="@color/background_primary"
+                android:minHeight="400dp">
+
+                <!-- FloatingActionButton for Edit Notes -->
+                <com.google.android.material.floatingactionbutton.FloatingActionButton
+                    android:id="@+id/editNotesFab"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="@dimen/dimen_20dp"
+                    android:contentDescription="@string/edit_notes"
+                    android:src="@drawable/ic_edit"
+                    app:backgroundTint="@color/white"
+                    app:tint="@color/accent_blue"
+                    app:elevation="@dimen/dimen_8dp"
+                    app:borderWidth="0dp" />
+            </FrameLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- Bottom Action Bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:background="@color/white"
+        android:padding="@dimen/dimen_20dp"
+        android:gravity="center"
+        android:elevation="@dimen/dimen_8dp">
+
+        <LinearLayout
+            android:id="@+id/btnTranscript"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/dimen_48dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="@dimen/dimen_8dp"
+            android:background="@drawable/transcript_button_background"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/dimen_16dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="@dimen/dimen_20dp"
+                android:layout_height="@dimen/dimen_20dp"
+                android:src="@drawable/ic_chat"
+                android:layout_marginEnd="@dimen/dimen_8dp"
+                app:tint="@color/accent_blue" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/chat_with_transcript"
+                android:textColor="@color/accent_blue"
+                android:textSize="@dimen/dimen_14sp"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/btnstop"
+            android:layout_width="0dp"
+            android:layout_height="@dimen/dimen_48dp"
+            android:layout_weight="0.5"
+            android:layout_marginStart="@dimen/dimen_8dp"
+            android:background="@drawable/card_bg"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/dimen_16dp"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="@dimen/dimen_40dp"
+                android:layout_height="@dimen/dimen_40dp"
+                android:src="@drawable/ic_stopp"
+                android:layout_marginEnd="@dimen/dimen_8dp"
+                app:tint="@color/red" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/stop_recording"
+                android:textColor="@color/black"
+                android:textSize="@dimen/dimen_14sp"
+                android:fontFamily="sans-serif-condensed-medium"
+                android:gravity="center" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</LinearLayout>

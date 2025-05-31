@@ -3,12 +3,13 @@ package com.example.twinmind_interview_app.Screen
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.twinmind_interview_app.Utils.navigateHandlers
 import com.example.twinmind_interview_app.databinding.ActivityUserHomeBinding
 
 import com.google.android.gms.auth.api.signin.*
@@ -20,7 +21,6 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.io.BufferedReader
-import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.SimpleDateFormat
@@ -31,22 +31,24 @@ class UserHomeActivity : AppCompatActivity() {
     private lateinit var binding: ActivityUserHomeBinding
     private lateinit var auth: FirebaseAuth
     private var accessToken: String? = null
+    private lateinit var navigation: navigateHandlers
 
     private val CALENDAR_SCOPES = listOf(
         Scope("https://www.googleapis.com/auth/calendar.readonly"),
         Scope("https://www.googleapis.com/auth/calendar.events.readonly")
     )
 
-    private val ClientID = "824470750323-v549rhj8mvgnj0gh5e4gfl84el53hagp.apps.googleusercontent.com"
+    private val ClientID =
+        "824470750323-v549rhj8mvgnj0gh5e4gfl84el53hagp.apps.googleusercontent.com"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityUserHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
         auth = FirebaseAuth.getInstance()
         setupClickListeners()
         checkCalendarPermission()
+        navigation = navigateHandlers()
 
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -56,6 +58,7 @@ class UserHomeActivity : AppCompatActivity() {
                         binding.tvCalendarEvents.visibility = View.VISIBLE
                         ensureCalendarAccess()
                     }
+
                     else -> binding.tvCalendarEvents.visibility = View.GONE
                 }
             }
@@ -64,15 +67,67 @@ class UserHomeActivity : AppCompatActivity() {
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
 
-
         binding.tvCalendarEvents.visibility = View.GONE
 
+        binding.ivProfile.setOnClickListener {
+            navigation.navigateMsgToAnotherActivity(
+                this, "RecodingStart", "true", ProfileSectionaActivity::class.java
+            )
+        }
 
+
+// Call this in your click listener:
+        binding.btnCapture.setOnClickListener {
+            checkPermissionsAndNavigate()
+        }
 
     }
 
+    private fun checkPermissionsAndNavigate() {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.RECORD_AUDIO),
+                100
+            )
+        } else {
+            navigateToAudioRec()
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 100) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                navigateToAudioRec()
+            } else {
+                Toast.makeText(this, "Microphone permission required!", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun navigateToAudioRec() {
+        navigation.navigateMsgToAnotherActivity(
+            this, "RecodingStart", "true", AudioRecActivity::class.java
+        )
+        finish()
+    }
+
+
     private fun checkCalendarPermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_CALENDAR
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
             ensureCalendarAccess()
         } else {
             requestPermissionLauncher.launch(Manifest.permission.READ_CALENDAR)
@@ -91,7 +146,11 @@ class UserHomeActivity : AppCompatActivity() {
 
     private fun ensureCalendarAccess() {
         val account = GoogleSignIn.getLastSignedInAccount(this)
-        if (account == null || !GoogleSignIn.hasPermissions(account, *CALENDAR_SCOPES.toTypedArray())) {
+        if (account == null || !GoogleSignIn.hasPermissions(
+                account,
+                *CALENDAR_SCOPES.toTypedArray()
+            )
+        ) {
             requestGoogleSignIn()
         } else {
             getAccessTokenAndLoadEvents(account)
@@ -101,8 +160,10 @@ class UserHomeActivity : AppCompatActivity() {
     private fun requestGoogleSignIn() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
-            .requestScopes(Scope("https://www.googleapis.com/auth/calendar.readonly"),
-                Scope("https://www.googleapis.com/auth/calendar.events.readonly"))
+            .requestScopes(
+                Scope("https://www.googleapis.com/auth/calendar.readonly"),
+                Scope("https://www.googleapis.com/auth/calendar.events.readonly")
+            )
             .requestIdToken(ClientID)
             .build()
 
@@ -117,7 +178,7 @@ class UserHomeActivity : AppCompatActivity() {
         GoogleSignIn.getSignedInAccountFromIntent(result.data)
             .addOnSuccessListener(this::getAccessTokenAndLoadEvents)
             .addOnFailureListener {
-                Toast.makeText(this, "Sign-in failed: ${it.message}", Toast.LENGTH_LONG).show()
+               // Toast.makeText(this, "Sign-in failed: ${it.message}", Toast.LENGTH_LONG).show()
             }
     }
 
@@ -155,7 +216,8 @@ class UserHomeActivity : AppCompatActivity() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    binding.tvCalendarEvents.text = "Failed to load events: ${e.localizedMessage}\nTap to retry."
+                    binding.tvCalendarEvents.text =
+                        "Failed to load events: ${e.localizedMessage}\nTap to retry."
                     binding.tvCalendarEvents.setOnClickListener { loadCalendarEvents() }
                 }
             }
@@ -170,8 +232,10 @@ class UserHomeActivity : AppCompatActivity() {
         val weekLater = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 7) }
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
 
-        val url = URL("https://www.googleapis.com/calendar/v3/calendars/primary/events" +
-                "?timeMin=${sdf.format(now.time)}&timeMax=${sdf.format(weekLater.time)}&orderBy=startTime&singleEvents=true&maxResults=10")
+        val url = URL(
+            "https://www.googleapis.com/calendar/v3/calendars/primary/events" +
+                    "?timeMin=${sdf.format(now.time)}&timeMax=${sdf.format(weekLater.time)}&orderBy=startTime&singleEvents=true&maxResults=10"
+        )
 
         (url.openConnection() as HttpURLConnection).apply {
             setRequestProperty("Authorization", "Bearer $token")
@@ -190,22 +254,27 @@ class UserHomeActivity : AppCompatActivity() {
         json.optString("summary", "No Title"),
         json.optString("description"),
         json.optString("location"),
-        json.getJSONObject("start").optString("dateTime", json.getJSONObject("start").optString("date"))
+        json.getJSONObject("start")
+            .optString("dateTime", json.getJSONObject("start").optString("date"))
     )
 
     private fun displayEvents(events: List<CalendarEvent>) {
-        binding.tvCalendarEvents.text = events.joinToString("\n\n") { "📅 ${it.summary}\n⏰ ${it.startTime}" }
+        binding.tvCalendarEvents.text =
+            events.joinToString("\n\n") { "📅 ${it.summary}\n⏰ ${it.startTime}" }
     }
 
     private fun setupClickListeners() {
         binding.btnSearch.setOnClickListener {
             Toast.makeText(this, "Search coming soon!", Toast.LENGTH_SHORT).show()
+
         }
 
-        binding.btnCapture.setOnClickListener {
-            Toast.makeText(this, "Meeting capture coming soon!", Toast.LENGTH_SHORT).show()
-        }
     }
 
-    data class CalendarEvent(val summary: String, val description: String, val location: String, val startTime: String)
+    data class CalendarEvent(
+        val summary: String,
+        val description: String,
+        val location: String,
+        val startTime: String
+    )
 }

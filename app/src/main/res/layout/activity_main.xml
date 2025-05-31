@@ -38,8 +38,8 @@
 
     <!-- Login Buttons Section -->
     <LinearLayout
-        android:layout_marginEnd="@dimen/dimen_15dp"
-        android:layout_marginStart="@dimen/dimen_15dp"
+        android:layout_marginEnd="@dimen/dimen_16dp"
+        android:layout_marginStart="@dimen/dimen_16dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"

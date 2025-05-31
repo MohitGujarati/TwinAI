@@ -114,7 +114,6 @@
         <item name="cardBackgroundColor">@color/white</item>
         <item name="contentPadding">@dimen/dimen_16dp</item>
     </style>
-
     <style name="GreenSwitchTheme" parent="Widget.MaterialComponents.CompoundButton.Switch">
         <item name="materialThemeOverlay">@style/GreenSwitchThemeOverlay</item>
     </style>
@@ -129,6 +128,7 @@
         <!-- Track color when switch is OFF -->
         <item name="colorSurface">#E0E0E0</item>
     </style>
+
     <!-- FAB Style -->
     <style name="FAB" parent="Widget.Material3.FloatingActionButton.Primary">
         <item name="backgroundTint">@color/white</item>

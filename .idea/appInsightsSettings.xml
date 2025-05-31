@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.example.twinmind_interview_app" />
+                  <option name="mobileSdkAppId" value="1:552430671576:android:2a36cec6c8b14e61e1a9ad" />
+                  <option name="projectId" value="twinmindai-interviewapp-1ea1a" />
+                  <option name="projectNumber" value="552430671576" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

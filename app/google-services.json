@@ -1,20 +1,20 @@
 {
   "project_info": {
-    "project_number": "294844610802",
-    "project_id": "twinmindai-5b845",
-    "storage_bucket": "twinmindai-5b845.firebasestorage.app"
+    "project_number": "552430671576",
+    "project_id": "twinmindai-interviewapp-1ea1a",
+    "storage_bucket": "twinmindai-interviewapp-1ea1a.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:294844610802:android:ff81dec1c1dffa532db86b",
+        "mobilesdk_app_id": "1:552430671576:android:2a36cec6c8b14e61e1a9ad",
         "android_client_info": {
           "package_name": "com.example.twinmind_interview_app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "294844610802-on9l2atav8m615ln151j38tr1jhbe0jl.apps.googleusercontent.com",
+          "client_id": "552430671576-5mvhk7vd3o1g6ve0fepo2iqh9u6ul6fj.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.twinmind_interview_app",
@@ -22,20 +22,20 @@
           }
         },
         {
-          "client_id": "294844610802-d54cenm7agfj4uu5ndjecqbp1g0s90mo.apps.googleusercontent.com",
+          "client_id": "552430671576-eaoikknm2reqjrir0pivt4rte5cjla93.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDdcdVoAYdD6M2_fs5TP_iJQWmmHNv6070"
+          "current_key": "AIzaSyD6exczC73uEW6JIWk323K7e6mi4wkk0DI"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "294844610802-d54cenm7agfj4uu5ndjecqbp1g0s90mo.apps.googleusercontent.com",
+              "client_id": "552430671576-eaoikknm2reqjrir0pivt4rte5cjla93.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
