@@ -6,25 +6,41 @@ import android.os.*
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.twinmind_interview_app.adapter.ChatAdapter
+import com.example.twinmind_interview_app.adapter.removeThinkingBubbleIfPresent
 import com.example.twinmind_interview_app.R
 import com.example.twinmind_interview_app.Utils.navigateHandlers
+import com.example.twinmind_interview_app.adapter.TranscriptAdapter
 import com.example.twinmind_interview_app.databinding.ActivityAudioRecBinding
+import com.example.twinmind_interview_app.model.ChatMessage
+import com.example.twinmind_interview_app.model.GeminiContent
+import com.example.twinmind_interview_app.model.GeminiPart
+import com.example.twinmind_interview_app.model.GeminiRequest
+import com.example.twinmind_interview_app.model.TranscriptSegmentEntity
+import com.example.twinmind_interview_app.network.GeminiApiClient
+import com.example.twinmind_interview_app.repository.TranscriptDatabase
+import com.example.twinmind_interview_app.repository.TranscriptSegmentDao
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import kotlinx.coroutines.*
 import java.util.*
 
 class AudioRecActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAudioRecBinding
     private lateinit var navigation: navigateHandlers
+    private lateinit var transcriptDao: TranscriptSegmentDao
 
     private var speechRecognizer: SpeechRecognizer? = null
     private var isRecording = false
@@ -33,15 +49,23 @@ class AudioRecActivity : AppCompatActivity() {
 
     private var transcriptText: String = ""
     private var transcriptTime: String = "00:00"
-
     private var continueListening = false
     private var currentTab = 1
+
+    // For segmenting
+    private var segmentStartTime = 0
+    private var currentSegmentText = ""
+
+    // Adapter for transcript RecyclerView
+    private var transcriptAdapter: TranscriptAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAudioRecBinding.inflate(layoutInflater)
         setContentView(binding.root)
         navigation = navigateHandlers()
+
+        transcriptDao = TranscriptDatabase.getDatabase(applicationContext).transcriptDao()
 
         setupTabs()
         setupClickListeners()
@@ -63,13 +87,90 @@ class AudioRecActivity : AppCompatActivity() {
         bottomSheetDialog.setContentView(view)
         val bottomSheet = bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
         bottomSheet?.layoutParams?.height = ViewGroup.LayoutParams.MATCH_PARENT
+
         val closeBtn = view.findViewById<ImageView>(R.id.closeBtn)
         closeBtn.setOnClickListener { bottomSheetDialog.dismiss() }
-        val transcriptTextView = view.findViewById<TextView>(R.id.bottomSheetTranscript)
-        transcriptTextView.text = if (transcriptText.isNotEmpty())
-            transcriptText
-        else
-            getString(R.string.text_will_appear_here_onces_recording_is_stoped)
+
+        // ---- BEGIN CHAT SETUP ----
+        val rvChat = view.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvChat)
+        val etMessage = view.findViewById<EditText>(R.id.etMessage)
+        val btnSend = view.findViewById<ImageView>(R.id.btnSend)
+        val bottomSheetTranscript = view.findViewById<TextView>(R.id.bottomSheetTranscript)
+        bottomSheetTranscript.visibility = View.GONE // Hide info text
+
+        val chatMessages = mutableListOf<ChatMessage>()
+        val chatAdapter = ChatAdapter(chatMessages)
+        rvChat.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
+        rvChat.adapter = chatAdapter
+
+        btnSend.setOnClickListener {
+            val userMsg = etMessage.text.toString().trim()
+            if (userMsg.isNotEmpty()) {
+                // 1. Show user message
+                chatAdapter.addMessage(ChatMessage(userMsg, true))
+                rvChat.scrollToPosition(chatAdapter.itemCount - 1)
+                etMessage.text.clear()
+                btnSend.isEnabled = false
+
+                // 2. Get transcript context and call Gemini API (coroutine)
+                CoroutineScope(Dispatchers.Main).launch {
+                    // Show typing indicator (optional)
+                    chatAdapter.addMessage(ChatMessage("Thinking...", false))
+                    rvChat.scrollToPosition(chatAdapter.itemCount - 1)
+
+                    // Load transcript from Room (on IO dispatcher)
+                    val segments = withContext(Dispatchers.IO) { transcriptDao.getAll() }
+                    val contextText = segments.joinToString("\n") { it.text }
+                    Log.d("AudioRecActivity", "Context: $contextText")
+
+                    // Compose Gemini prompt
+                    val prompt = """
+                        ${getString(R.string.gemini_prompt)}{}
+                Context:
+                $contextText
+
+                Question:
+                $userMsg
+
+                Answer in clear, helpful language:
+            """.trimIndent()
+
+                    // Build Gemini request
+                    val request = GeminiRequest(
+                        contents = listOf(
+                            GeminiContent(
+                                parts = listOf(GeminiPart(prompt))
+                            )
+                        )
+                    )
+
+                    try {
+                        // Make Gemini API call
+                        val response = GeminiApiClient.service.generateContent(
+                            apiKey = "",
+                            request = request
+                        )
+                        // Remove "Thinking..." bubble
+                        chatAdapter.removeThinkingBubbleIfPresent()
+                        // Show Gemini's reply
+                        val reply = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                            ?: "Sorry, no answer from Gemini."
+                        chatAdapter.addMessage(ChatMessage(reply, false))
+                        rvChat.scrollToPosition(chatAdapter.itemCount - 1)
+                    } catch (e: Exception) {
+                        chatAdapter.removeThinkingBubbleIfPresent()
+                        chatAdapter.addMessage(ChatMessage("Error: ${e.localizedMessage}", false))
+                        rvChat.scrollToPosition(chatAdapter.itemCount - 1)
+                    } finally {
+                        btnSend.isEnabled = true
+                    }
+                }
+            }
+        }
+
+
+        // ---- END CHAT SETUP ----
+
         bottomSheetDialog.show()
     }
 
@@ -115,8 +216,7 @@ class AudioRecActivity : AppCompatActivity() {
                 override fun onResults(results: Bundle) {
                     val matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     if (!matches.isNullOrEmpty()) {
-                        transcriptText = appendIfNew(transcriptText, matches[0])
-                        updateTranscriptAllUIs()
+                        onSpeechResult(matches[0])
                     }
                     if (continueListening && isRecording) {
                         restartSpeechToTextWithDelay()
@@ -125,13 +225,18 @@ class AudioRecActivity : AppCompatActivity() {
                 override fun onPartialResults(partialResults: Bundle) {
                     val matches = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     if (!matches.isNullOrEmpty()) {
-                        transcriptText = appendIfNew(transcriptText, matches[0])
-                        updateTranscriptAllUIs()
+                        onSpeechResult(matches[0])
                     }
                 }
                 override fun onEvent(eventType: Int, params: Bundle?) {}
             })
         }
+    }
+
+    private fun onSpeechResult(text: String) {
+        transcriptText = appendIfNew(transcriptText, text)
+        currentSegmentText = appendIfNew(currentSegmentText, text)
+        updateTranscriptAllUIs()
     }
 
     private fun appendIfNew(existing: String, newText: String): String {
@@ -146,8 +251,10 @@ class AudioRecActivity : AppCompatActivity() {
         isRecording = true
         continueListening = true
         transcriptText = ""
+        currentSegmentText = ""
         transcriptTime = "00:00"
         secondsElapsed = 0
+        segmentStartTime = 0
         binding.LLRecodingBlock.visibility = View.VISIBLE
         binding.btnstop.visibility = View.VISIBLE
         binding.btnTranscript.visibility = View.GONE
@@ -156,7 +263,7 @@ class AudioRecActivity : AppCompatActivity() {
         startSpeechToText()
     }
 
-    private fun stopRecording() {
+    suspend fun stopRecordingAndRefresh() {
         isRecording = false
         continueListening = false
         transcriptTime = getCurrentTimerText()
@@ -165,8 +272,26 @@ class AudioRecActivity : AppCompatActivity() {
         binding.btnTranscript.visibility = View.VISIBLE
         stopTimer()
         stopSpeechToText()
+        // Save the final segment and wait for DB insert to finish
+        withContext(Dispatchers.IO) {
+            saveCurrentSegmentSync()
+        }
         selectTab(2)
         updateTranscriptAllUIs()
+    }
+
+    // Use this in place of the old saveCurrentSegment()
+    suspend fun saveCurrentSegmentSync() {
+        val text = currentSegmentText.trim()
+        if (text.isNotEmpty()) {
+            val segment = TranscriptSegmentEntity(
+                text = text,
+                startTime = segmentStartTime,
+                endTime = secondsElapsed,
+                synced = false
+            )
+            transcriptDao.insert(segment)
+        }
     }
 
     private fun startTimer() {
@@ -174,6 +299,12 @@ class AudioRecActivity : AppCompatActivity() {
         timer = object : CountDownTimer(60 * 60 * 1000, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 secondsElapsed++
+                // Every 30 seconds, save the segment
+                if ((secondsElapsed - segmentStartTime) >= 30) {
+                    saveCurrentSegment()
+                    segmentStartTime = secondsElapsed
+                    currentSegmentText = ""
+                }
                 updateTimerText()
                 updateTranscriptAllUIs()
             }
@@ -216,7 +347,6 @@ class AudioRecActivity : AppCompatActivity() {
 
     private fun stopSpeechToText() {
         speechRecognizer?.stopListening()
-        // DO NOT destroy SpeechRecognizer here—keep it alive for the activity lifetime.
     }
 
     override fun onDestroy() {
@@ -225,6 +355,28 @@ class AudioRecActivity : AppCompatActivity() {
         stopSpeechToText()
         speechRecognizer?.destroy()
         speechRecognizer = null
+    }
+
+    // --- Room: Save 30s segment ---
+    private fun saveCurrentSegment() {
+        val text = currentSegmentText.trim()
+        if (text.isNotEmpty()) {
+            val segment = TranscriptSegmentEntity(
+                text = text,
+                startTime = segmentStartTime,
+                endTime = secondsElapsed,
+                synced = false
+            )
+            CoroutineScope(Dispatchers.IO).launch {
+                transcriptDao.insert(segment)
+            }
+        }
+    }
+
+    private fun formatTime(seconds: Int): String {
+        val min = seconds / 60
+        val sec = seconds % 60
+        return String.format("%02d:%02d", min, sec)
     }
 
     // --- UI Tabs ---
@@ -242,7 +394,11 @@ class AudioRecActivity : AppCompatActivity() {
         binding.shareBtn.setOnClickListener { /* share */ }
         binding.editNotesFab.setOnClickListener { }
         binding.btnTranscript.setOnClickListener { }
-        binding.btnstop.setOnClickListener { stopRecording() }
+        binding.btnstop.setOnClickListener {
+            CoroutineScope(Dispatchers.Main).launch {
+                stopRecordingAndRefresh()
+            }
+        }
     }
 
     private fun selectTab(position: Int) {
@@ -250,7 +406,7 @@ class AudioRecActivity : AppCompatActivity() {
         currentTab = position
         updateTabAppearance()
         showTabContent(position)
-        updateTranscriptAllUIs() // Always refresh transcript UI when switching tabs!
+        updateTranscriptAllUIs()
     }
 
     private fun updateTabAppearance() {
@@ -285,15 +441,30 @@ class AudioRecActivity : AppCompatActivity() {
         binding.tabContentContainer.removeAllViews()
         binding.tabContentContainer.addView(view)
         binding.editNotesFab.visibility = if (position == 1) View.VISIBLE else View.GONE
-        updateTranscriptAllUIs()
+
+        if (position == 2) {
+            val rv = view.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvTranscriptSegments)
+            transcriptAdapter = TranscriptAdapter(listOf())
+            rv.adapter = transcriptAdapter
+            rv.layoutManager = LinearLayoutManager(this)
+            loadTranscriptSegments()
+        }
+    }
+
+    private fun loadTranscriptSegments() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val segments = transcriptDao.getAll().reversed()
+            withContext(Dispatchers.Main) {
+                transcriptAdapter?.setItems(segments)
+            }
+        }
     }
 
     private fun updateTranscriptAllUIs() {
-        val transcriptView = binding.tabContentContainer.findViewById<TextView>(R.id.transcript_text)
         val transcriptTimeView = binding.tabContentContainer.findViewById<TextView>(R.id.tv_recording_time)
         if (currentTab == 2) {
             transcriptTimeView?.text = if (isRecording) getCurrentTimerText() else transcriptTime
-            transcriptView?.text = if (transcriptText.isNotEmpty()) transcriptText else getString(R.string.text_will_appear_here_onces_recording_is_stoped)
+            loadTranscriptSegments()
         }
     }
 }

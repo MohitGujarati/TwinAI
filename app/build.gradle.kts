@@ -1,10 +1,10 @@
-
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.gms.google.services)
+    id("org.jetbrains.kotlin.kapt") // <--- Add this line exactly
 }
+
 
 android {
     namespace = "com.example.twinmind_interview_app"
@@ -24,6 +24,7 @@ android {
         }
     }
 
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -37,7 +38,6 @@ android {
         viewBinding = true
         compose = false
     }
-
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -64,47 +64,58 @@ android {
 }
 
 dependencies {
-    // ✅ Firebase BoM (manages versions automatically)
     implementation(platform("com.google.firebase:firebase-bom:32.1.1"))
     implementation("com.google.firebase:firebase-auth-ktx")
-
     implementation ("androidx.activity:activity-ktx:1.2.0") // or newer
     implementation ("androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.0") // or newer
 
+
+    implementation ("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation ("com.squareup.retrofit2:converter-moshi:2.11.0")
+    implementation ("com.squareup.moshi:moshi:1.15.1")
+    implementation ("com.squareup.moshi:moshi-kotlin:1.15.1")
+    implementation ("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    kapt ("com.squareup.moshi:moshi-kotlin-codegen:1.15.1")
+
+
     //Motion layout
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
-    // To use constraintlayout in compose
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
-
-    // ✅ Google Sign-In (latest stable)
     implementation("com.google.android.gms:play-services-auth:21.3.0")
-
-    // ✅ Retrofit + Gson
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.google.code.gson:gson:2.10.1")
 
-    // ✅ Coroutines (latest stable as of 2025)
+    val room_version = "2.7.1"
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    // REMOVE the annotationProcessor line below
+    // annotationProcessor("androidx.room:room-compiler:$room_version")
+    kapt("androidx.room:room-compiler:$room_version") // <-- ADD THIS LINE
+
+    implementation("androidx.room:room-rxjava2:$room_version")
+    implementation("androidx.room:room-rxjava3:$room_version")
+    implementation("androidx.room:room-guava:$room_version")
+    testImplementation("androidx.room:room-testing:$room_version")
+    implementation("androidx.room:room-paging:$room_version")
+
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    // ✅ AndroidX + Material Design
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.activity:activity-ktx:1.9.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.0-alpha13")
 
-    // ✅ Google Identity Credential APIs (optional for next-gen sign-in)
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
-
-    // ✅ Google API Client & OAuth2 libraries (for GoogleAccountCredential and CalendarScopes)
     implementation("com.google.api-client:google-api-client-android:1.34.0")
     implementation("com.google.oauth-client:google-oauth-client-jetty:1.34.1")
     implementation("com.google.http-client:google-http-client-jackson2:1.40.1")
 
-    // ✅ Jetpack Compose & Lifecycle (using your libs)
+    // Jetpack Compose (if needed for other modules)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -114,7 +125,6 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.activity)
 
-    // ✅ Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

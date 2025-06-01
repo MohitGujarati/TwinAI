@@ -11,6 +11,7 @@
     <dimen name="dimen_32sp">32sp</dimen>
 
     <!-- Dimensions -->
+    <dimen name="dimen_0dp">0dp</dimen>
     <dimen name="dimen_1dp">1dp</dimen>
     <dimen name="dimen_2dp">2dp</dimen>
     <dimen name="dimen_3dp">3dp</dimen>
@@ -18,7 +19,9 @@
     <dimen name="dimen_5dp">5dp</dimen>
     <dimen name="dimen_6dp">6dp</dimen>
     <dimen name="dimen_8dp">8dp</dimen>
+    <dimen name="dimen_10dp">10dp</dimen>
     <dimen name="dimen_12dp">12dp</dimen>
+    <dimen name="dimen_15dp">15dp</dimen>
     <dimen name="dimen_16dp">16dp</dimen>
     <dimen name="dimen_20dp">20dp</dimen>
     <dimen name="dimen_24dp">24dp</dimen>
@@ -34,7 +37,7 @@
     <dimen name="dimen_80dp">80dp</dimen>
     <dimen name="dimen_100dp">100dp</dimen>
     <dimen name="dimen_250dp">250dp</dimen>
-    <dimen name="dimen_15dp">15dp</dimen>
+    <dimen name="dimen_280dp">280dp</dimen>
 
     <!-- Common Margins and Paddings -->
     <dimen name="margin_small">8dp</dimen>

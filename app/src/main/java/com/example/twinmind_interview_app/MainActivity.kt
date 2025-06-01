@@ -91,6 +91,10 @@ class MainActivity : AppCompatActivity() {
         binding.btnContinueWithApple.setOnClickListener {
             // Apple Sign In implementation would go here
             Toast.makeText(this, "Apple Sign In not implemented yet", Toast.LENGTH_SHORT).show()
+
+            val intent = Intent(this, UserHomeActivity::class.java)
+            startActivity(intent)
+            finish()
         }
     }
 

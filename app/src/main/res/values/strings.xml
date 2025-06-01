@@ -70,5 +70,16 @@
     <string name="settings2">Settings</string>
     <string name="text_will_appear_here_onces_recording_is_stoped">Text will appear here onces recording is stoped !</string>
     <string name="close">close</string>
+    <string name="you_can_ask_questions_and_get_answers_from_the_transcript">You can ask questions and get answers from the transcript</string>
+    <string name="type_a_message">Type a message</string>
+    <string name="send">Send</string>
+    <string name="hello_i_m_your_ai_assistant_how_can_i_help_you_today">Hello! I\'m your AI assistant. How can I help you today?</string>
+    <string name="now">now</string>
+    <string name="hello_i_m_your_ai_assistant_ready_to_help_you">Hello! I\'m your AI assistant ready to help you.</string>
+    <string name="gemini_prompt">#  AI Prompt: please learn who are we and how we are going to use you  Understanding TwinMind\n\nTwinMind is an AI-powered productivity assistant app that functions as a \"Second Brain\" for users. Here\'s what you should know about it:\n\n## Core Functionality\nTwinMind captures and processes audio from meetings, lectures, conversations, and daily interactions. It provides automatic transcription, summarization, and contextual assistance based on everything the user hears and says.\n\n## Key Features\n- **Unlimited Audio Transcription**: Records and transcribes conversations, meetings, and lectures with no time limits on the free plan\n- **Automatic Summarization**: Creates summaries of captured content without manual input\n- **Proactive AI Assistance**: Offers suggestions, tasks, and answers before being asked\n- **Context Building**: Continuously builds an AI knowledge base from user interactions and browser activity\n- **Multi-language Support**: Automatically translates content to the user\'s preferred language\n- **Email and Report Generation**: Drafts follow-up emails, messages, and reports based on conversation context\n- **Offline Capability**: Works without internet connection for privacy and continuous operation\n- **Browser Integration**: Leverages context from browser tabs to provide more relevant assistance\n\n## Target Users\n- Professionals in meetings and business settings\n- Students attending lectures and classes\n- Researchers gathering information\n- Content creators needing transcription services\n- Project managers tracking conversations and decisions\n- Remote workers managing virtual interactions\n\n
+        ## Privacy and Availability\n- Prioritizes user privacy with offline processing capabilities\n- Available as a mobile app (iOS App Store)\n- Currently in beta phase for user feedback\n- Offers a free plan with unlimited transcription and AI chat features\n\n## Use Cases\nWhen referencing TwinMind, understand it as a comprehensive productivity tool that eliminates the need for manual note-taking by automatically capturing, processing, and organizing spoken information into actionable insights and content.
+
+        THis is you task -> here you will have data of user saved information he will ask you questions on that and you have to answer them accordingly in the a way that an normal 10year old child can understand.
+    </string>
 
 </resources>
