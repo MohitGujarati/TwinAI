@@ -1,6 +1,7 @@
 package com.example.twinmind_interview_app.Screen
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.location.Address
 import android.location.Geocoder
@@ -36,6 +37,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import io.noties.markwon.Markwon
 import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -172,7 +174,8 @@ class AudioRecActivity : AppCompatActivity() {
         }
 
         // 1. Setup adapter
-        val chatAdapter = ChatAdapter(mutableListOf())
+        val markwon = Markwon.create(this)
+        val chatAdapter = ChatAdapter(mutableListOf(), markwon)
         rvChat.layoutManager = LinearLayoutManager(this).apply {
             stackFromEnd = true
             reverseLayout = false
@@ -343,9 +346,14 @@ class AudioRecActivity : AppCompatActivity() {
         withContext(Dispatchers.IO) {
             saveCurrentSegmentSync()
         }
-        selectTab(2)
+        viewModel.generateSummary(transcriptDao, API_KEY)
+
+        selectTab(1) // Move to Notes tab
         updateTranscriptAllUIs()
+        insertDemoTranscriptAndGenerateSummary()
+
     }
+
 
     // Use this in place of the old saveCurrentSegment()
     suspend fun saveCurrentSegmentSync() {
@@ -470,8 +478,11 @@ class AudioRecActivity : AppCompatActivity() {
                 stopRecordingAndRefresh()
             }
 
+
         }
     }
+
+
 
     private fun selectTab(position: Int) {
         if (currentTab == position) return
@@ -505,6 +516,7 @@ class AudioRecActivity : AppCompatActivity() {
         tab.setBackgroundResource(R.drawable.tab_selected_bg)
     }
 
+    @SuppressLint("SuspiciousIndentation")
     private fun showTabContent(position: Int) {
         val layoutId = when (position) {
             0 -> R.layout.view_questions_tab
@@ -517,7 +529,19 @@ class AudioRecActivity : AppCompatActivity() {
         binding.tabContentContainer.addView(view)
       //  binding.editNotesFab.visibility = if (position == 1) View.VISIBLE else View.GONE
 
-        if (position == 2) {
+        if (position == 1) {
+            val summaryCard = view.findViewById<TextView>(R.id.summaryTextView)
+            viewModel.summary.observe(this) { summary ->
+                val markwon = Markwon.create(this)
+                markwon.setMarkdown(summaryCard, summary ?: "Transcript too short to generate a summary")
+            }
+
+        val refreshBtn = view.findViewById<ImageView>(R.id.refreshSummaryBtn) // set this ID in your XML
+            refreshBtn.setOnClickListener {
+                viewModel.generateSummary(transcriptDao, API_KEY)
+            }
+
+        } else if (position == 2) {
             val rv =
                 view.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvTranscriptSegments)
             transcriptAdapter = TranscriptAdapter(listOf())
@@ -544,4 +568,61 @@ class AudioRecActivity : AppCompatActivity() {
             loadTranscriptSegments()
         }
     }
+
+
+    private fun insertDemoTranscriptAndGenerateSummary() {
+        CoroutineScope(Dispatchers.IO).launch {
+            transcriptDao.deleteAll() // optional, cleans previous runs
+            val demoText = """
+    Today’s meeting covered the new product launch timeline. John said we should finish the prototype by Friday. Sarah agreed and suggested we test with five users before launch. We also decided on a blue color scheme. The marketing team will prepare the announcement next week. No major issues were found in the last sprint. We set the next meeting for Monday morning. Everyone agreed to send updates by Sunday evening.
+
+    The session began with a brief overview of last week’s accomplishments. John highlighted that the initial design phase went smoothly and all team members contributed effectively. Sarah shared feedback from the design review, noting a few areas that could be improved but overall expressing satisfaction with the team’s work.
+
+    Emily from the development team presented her update, stating that all main features have been implemented in the current prototype. However, she mentioned a few bugs still needed to be fixed, particularly in the login module and the new dashboard layout. Michael agreed and offered to help Emily resolve those issues over the next two days.
+
+    The discussion moved to testing. Sarah recommended we start user testing with at least five participants to gather meaningful feedback. John emphasized the importance of a diverse group of testers to ensure the product works for different user types. Emily agreed, mentioning that she would coordinate with the testing team to schedule these sessions by Thursday.
+
+    Next, the team talked about branding. After some debate, everyone agreed on a blue color scheme as it aligns with the company's image. Michael suggested adding a secondary accent color for call-to-action buttons, which was supported by the group.
+
+    For marketing, Karen outlined a strategy for the product announcement. She will draft the press release and social media posts, aiming to complete them by next Wednesday. John asked everyone to review the marketing materials and provide feedback as soon as possible.
+
+    The team discussed documentation and internal training for customer support. Sarah volunteered to update the product manual, while Michael said he would create short training videos for support staff.
+
+    During the open floor, Emily asked if the product should include a feedback form on the dashboard. John thought it was a great idea and asked her to design a simple feedback interface before the next meeting.
+
+    Before wrapping up, everyone shared their action items: John will oversee prototype completion, Emily and Michael will fix bugs, Sarah will handle testing and documentation, and Karen will lead marketing efforts. The next meeting was scheduled for Monday morning at 10 a.m., and all members were reminded to send status updates by Sunday evening.
+
+    In summary, the team made significant progress this week, addressing design and development tasks while planning the upcoming product launch and announcement. The collaborative spirit and clear division of tasks helped ensure all areas are covered.
+
+    Additional details were discussed after the main meeting. The development team reviewed the codebase for any security vulnerabilities, agreeing to run automated security scans on Friday. Sarah proposed holding a short retrospective after launch to identify what went well and what could be improved for future projects.
+
+    John confirmed the budget for user testing and ensured all resources were available. Emily shared an updated project timeline, confirming that all deliverables were on track. The team concluded the meeting by expressing gratitude for everyone’s hard work and commitment.
+
+    The meeting minutes were documented and shared with all participants immediately after the call. Karen followed up by distributing the latest marketing assets, and Sarah sent an invitation for next week’s retrospective.
+
+    By the end of the day, all assigned tasks were tracked in the project management tool, and a summary email was sent to stakeholders. This meeting set the stage for a successful product launch and demonstrated the team’s ability to collaborate efficiently.
+""".trimIndent()
+
+
+            transcriptDao.insert(
+                TranscriptSegmentEntity(
+                    text = demoText,
+                    startTime = 0,
+                    endTime = 120,
+                    synced = false
+                )
+            )
+            withContext(Dispatchers.Main) {
+                viewModel.generateSummary(transcriptDao, API_KEY)
+                selectTab(1)
+            }
+        }
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+        navigation.navigateToAnotherActivity(this, UserHomeActivity::class.java)
+        finish()
+    }
+
 }

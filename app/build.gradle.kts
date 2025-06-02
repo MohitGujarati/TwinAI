@@ -86,6 +86,9 @@ dependencies {
     implementation ("com.google.android.gms:play-services-location:21.0.1")
 
 
+    //Markdown for gemini to show in transcript
+    implementation ("io.noties.markwon:core:4.6.2")
+
 
 
 

@@ -22,6 +22,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val _messages = MutableLiveData<List<ChatMessage>>(emptyList())
     val messages: LiveData<List<ChatMessage>> = _messages
 
+    private val _summary = MutableLiveData<String?>()
+    val summary: LiveData<String?> = _summary
+
 
 
         fun sendMessage(userMsg: String, transcriptDao: TranscriptSegmentDao, apiKey: String) {
@@ -140,5 +143,49 @@ This is your task no need to say to user -> here you will have data of user save
                 }
             }
         }
+
+    // In ChatViewModel.kt
+    fun generateSummary(transcriptDao: TranscriptSegmentDao, apiKey: String) {
+        viewModelScope.launch {
+            _summary.value = "Generating summary..."
+
+            val transcriptSegments = withContext(Dispatchers.IO) {
+                transcriptDao.getAll()
+            }
+            val transcriptText = transcriptSegments.joinToString(" ") { it.text }
+
+            if (transcriptText.split("\\s+".toRegex()).size < 150) {
+                _summary.value = "Transcript too short to generate a summary"
+                return@launch
+            }
+
+            val systemPrompt = """
+            Summarize the following meeting transcript in a clear, simple way that a 10-year-old could understand. Highlight any key points or decisions.
+            --- Transcript Start ---
+            $transcriptText
+            --- Transcript End ---
+        """.trimIndent()
+
+            val request = GeminiRequest(
+                contents = listOf(
+                    GeminiContent(
+                        parts = listOf(GeminiPart(systemPrompt))
+                    )
+                )
+            )
+
+            try {
+                val response = GeminiApiClient.service.generateContent(apiKey, request)
+                val summaryText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
+                    ?: "No summary could be generated."
+                _summary.value = summaryText
+            } catch (e: Exception) {
+                _summary.value = "Error generating summary: ${e.localizedMessage}"
+            }
+        }
     }
+
+
+
+}
 

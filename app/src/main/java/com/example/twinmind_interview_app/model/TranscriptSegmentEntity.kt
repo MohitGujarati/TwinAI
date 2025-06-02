@@ -13,3 +13,5 @@ data class TranscriptSegmentEntity(
     val synced: Boolean = false
 )
 
+
+

@@ -45,6 +45,7 @@
                         android:fontFamily="sans-serif-medium" />
 
                     <TextView
+                        android:visibility="gone"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Transcript too short to generate a summary"
@@ -55,8 +56,9 @@
                 </LinearLayout>
 
                 <ImageView
-                    android:layout_width="@dimen/dimen_24dp"
-                    android:layout_height="@dimen/dimen_24dp"
+                    android:id="@+id/refreshSummaryBtn"
+                    android:layout_width="@dimen/dimen_40dp"
+                    android:layout_height="@dimen/dimen_40dp"
                     android:src="@drawable/ic_refresh"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:padding="@dimen/dimen_4dp"
@@ -127,6 +129,7 @@
                         android:paddingBottom="@dimen/dimen_20dp">
 
                         <TextView
+                            android:id="@+id/summaryTextView"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:text="Click 'Edit Notes' to add your own notes or provide instructions to regenerate summary (e.g. correct spellings to fix transcription errors)"

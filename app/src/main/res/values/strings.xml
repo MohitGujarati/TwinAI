@@ -70,7 +70,7 @@
     <string name="settings2">Settings</string>
     <string name="text_will_appear_here_onces_recording_is_stoped">Text will appear here once\'s recording is stopped !</string>
     <string name="close">close</string>
-    <string name="you_can_ask_questions_and_get_answers_from_the_transcript">Swipe Up to activate your TwinBrain\n \n -> From summarising of your transcript to giving you plan I can help you here \n Ask me anything about this transcript … </string>
+    <string name="you_can_ask_questions_and_get_answers_from_the_transcript">Ask me anything about this transcript … </string>
     <string name="type_a_message">Type a message</string>
     <string name="send">Send</string>
     <string name="hello_i_m_your_ai_assistant_how_can_i_help_you_today">Hello! I\'m your AI assistant. How can I help you today?</string>

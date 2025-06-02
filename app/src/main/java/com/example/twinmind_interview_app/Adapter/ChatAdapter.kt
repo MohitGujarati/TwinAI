@@ -7,8 +7,12 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.twinmind_interview_app.R
 import com.example.twinmind_interview_app.model.ChatMessage
+import io.noties.markwon.Markwon
 
-class ChatAdapter(val messages: MutableList<ChatMessage>) :
+class ChatAdapter(
+    val messages: MutableList<ChatMessage>,
+    private val markwon: Markwon
+) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -24,12 +28,13 @@ class ChatAdapter(val messages: MutableList<ChatMessage>) :
         val inflater = LayoutInflater.from(parent.context)
         return if (viewType == TYPE_USER) {
             val view = inflater.inflate(R.layout.item_chat_user, parent, false)
-            UserViewHolder(view)
+            UserViewHolder(view, markwon)
         } else {
             val view = inflater.inflate(R.layout.item_chat_bot, parent, false)
-            BotViewHolder(view)
+            BotViewHolder(view, markwon)
         }
     }
+
 
     override fun getItemCount(): Int = messages.size
 
@@ -63,7 +68,8 @@ class ChatAdapter(val messages: MutableList<ChatMessage>) :
         val lastIndex = messages.size - 1
         if (lastIndex >= 0 &&
             messages[lastIndex].message == "Thinking..." &&
-            !messages[lastIndex].isUser) {
+            !messages[lastIndex].isUser
+        ) {
             messages.removeAt(lastIndex)
             notifyItemRemoved(lastIndex)
         }
@@ -71,17 +77,17 @@ class ChatAdapter(val messages: MutableList<ChatMessage>) :
 
 
     // --- ViewHolder classes ---
-    class UserViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class UserViewHolder(itemView: View, private val markwon: Markwon) : RecyclerView.ViewHolder(itemView) {
         private val textView: TextView = itemView.findViewById(R.id.tvMessageUser)
         fun bind(msg: String) {
-            textView.text = msg
+            markwon.setMarkdown(textView, msg)
         }
     }
 
-    class BotViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class BotViewHolder(itemView: View, private val markwon: Markwon) : RecyclerView.ViewHolder(itemView) {
         private val textView: TextView = itemView.findViewById(R.id.tvMessageBot)
         fun bind(msg: String) {
-            textView.text = msg
+            markwon.setMarkdown(textView, msg)
         }
     }
 
