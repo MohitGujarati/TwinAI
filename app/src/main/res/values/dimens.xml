@@ -38,6 +38,7 @@
     <dimen name="dimen_100dp">100dp</dimen>
     <dimen name="dimen_250dp">250dp</dimen>
     <dimen name="dimen_280dp">280dp</dimen>
+    <dimen name="dimen_400dp">400dp</dimen>
 
     <!-- Common Margins and Paddings -->
     <dimen name="margin_small">8dp</dimen>

@@ -191,21 +191,55 @@
                 android:layout_height="match_parent"
                 android:layout_marginTop="@dimen/dimen_8dp"
                 android:background="@color/background_primary"
-                android:minHeight="400dp">
+                android:minHeight="@dimen/dimen_400dp">
 
-                <!-- FloatingActionButton for Edit Notes -->
-                <com.google.android.material.floatingactionbutton.FloatingActionButton
-                    android:id="@+id/editNotesFab"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="bottom|end"
-                    android:layout_margin="@dimen/dimen_20dp"
-                    android:contentDescription="@string/edit_notes"
-                    android:src="@drawable/ic_edit"
-                    app:backgroundTint="@color/white"
-                    app:borderWidth="0dp"
-                    app:elevation="@dimen/dimen_8dp"
-                    app:tint="@color/accent_blue" />
+                <!-- TwinMind Listening Container -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:padding="@dimen/dimen_24dp">
+
+                    <!-- Audio Wave Icon -->
+                    <ImageView
+                        android:id="@+id/audioWaveIcon"
+                        android:layout_width="@dimen/dimen_32dp"
+                        android:layout_height="@dimen/dimen_32dp"
+                        android:layout_marginBottom="@dimen/dimen_32dp"
+                        android:src="@drawable/ic_soundwaves"
+                        android:contentDescription="@string/audio_wave_indicator" />
+
+                    <!-- Main Title -->
+                    <TextView
+                        android:id="@+id/listeningTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/twinmind_is_listening_in_the_background"
+                        android:textSize="@dimen/dimen_20sp"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="normal"
+                        android:fontFamily="sans-serif-condensed-medium"
+                        android:gravity="center"
+                        android:layout_marginBottom="@dimen/dimen_16dp" />
+
+                    <!-- Subtitle Text -->
+                    <TextView
+                        android:id="@+id/listeningSubtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_secondary"
+                        android:fontFamily="sans-serif-condensed-medium"
+                        android:lineSpacingExtra="4dp"
+                        android:text="Leave it on during your meetings or conversations.">
+">
+
+                    </TextView>
+
+                </LinearLayout>
+
             </FrameLayout>
         </LinearLayout>
     </ScrollView>

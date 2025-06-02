@@ -68,9 +68,9 @@
     <string name="refer_a_friend">REFER A FRIEND</string>
     <string name="refer_friend">Refer Friend</string>
     <string name="settings2">Settings</string>
-    <string name="text_will_appear_here_onces_recording_is_stoped">Text will appear here onces recording is stoped !</string>
+    <string name="text_will_appear_here_onces_recording_is_stoped">Text will appear here once\'s recording is stopped !</string>
     <string name="close">close</string>
-    <string name="you_can_ask_questions_and_get_answers_from_the_transcript">You can ask questions and get answers from the transcript</string>
+    <string name="you_can_ask_questions_and_get_answers_from_the_transcript">Swipe Up to activate your TwinBrain\n \n -> From summarising of your transcript to giving you plan I can help you here \n Ask me anything about this transcript … </string>
     <string name="type_a_message">Type a message</string>
     <string name="send">Send</string>
     <string name="hello_i_m_your_ai_assistant_how_can_i_help_you_today">Hello! I\'m your AI assistant. How can I help you today?</string>
@@ -81,5 +81,7 @@
 
         THis is you task -> here you will have data of user saved information he will ask you questions on that and you have to answer them accordingly in the a way that an normal 10year old child can understand.
     </string>
+    <string name="twinmind_is_listening_in_the_background">TwinMind is listening in the background</string>
+    <string name="audio_wave_indicator">Audio wave indicator</string>
 
 </resources>

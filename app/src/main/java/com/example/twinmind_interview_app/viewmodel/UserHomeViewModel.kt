@@ -2,6 +2,7 @@ package com.example.twinmind_interview_app.viewmodel
 
 import androidx.lifecycle.*
 import com.example.twinmind_interview_app.model.CalendarEvent
+import com.example.twinmind_interview_app.model.EventDateTime
 import kotlinx.coroutines.*
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -36,7 +37,6 @@ class UserHomeViewModel : ViewModel() {
         }
     }
 
-    // This is your network call logic, adapted from your Activity
     private suspend fun fetchCalendarEvents(token: String): List<CalendarEvent> {
         val now = Calendar.getInstance()
         val weekLater = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 7) }
@@ -53,15 +53,19 @@ class UserHomeViewModel : ViewModel() {
                 .getJSONArray("items").let { items ->
                     (0 until items.length()).map { i ->
                         val json = items.getJSONObject(i)
+                        // Extract the "start" object
+                        val startObj = json.optJSONObject("start")
+                        val eventDateTime = EventDateTime(
+                            dateTime = startObj?.optString("dateTime"),
+                            date = startObj?.optString("date")
+                        )
                         CalendarEvent(
-                            json.optString("summary", "No Title"),
-                            json.optString("description"),
-                            json.optString("location"),
-                            json.getJSONObject("start")
-                                .optString("dateTime", json.getJSONObject("start").optString("date"))
+                            summary = json.optString("summary", "No Title"),
+                            start = eventDateTime
                         )
                     }
                 }
         }
     }
+
 }

@@ -1,30 +1,36 @@
 package com.example.twinmind_interview_app.Screen
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.twinmind_interview_app.BuildConfig
-import com.example.twinmind_interview_app.Screen.AudioRecActivity
-import com.example.twinmind_interview_app.Screen.ProfileSectionaActivity
+import com.example.twinmind_interview_app.Utils.navigateHandlers
 import com.example.twinmind_interview_app.databinding.ActivityUserHomeBinding
 import com.example.twinmind_interview_app.model.CalendarEvent
+import com.example.twinmind_interview_app.network.GoogleCalendarService
+import com.example.twinmind_interview_app.network.RetrofitBuilder
 import com.example.twinmind_interview_app.viewmodel.UserHomeViewModel
-import com.example.twinmind_interview_app.Utils.navigateHandlers
+import com.google.android.gms.auth.GoogleAuthUtil
 import com.google.android.gms.auth.api.signin.*
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.api.Scope
 import com.google.android.material.tabs.TabLayout
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
-import com.google.api.client.util.ExponentialBackOff
+import io.opencensus.stats.View
 import kotlinx.coroutines.*
-import java.util.*
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 
 class UserHomeActivity : AppCompatActivity() {
 
@@ -38,8 +44,9 @@ class UserHomeActivity : AppCompatActivity() {
         Scope("https://www.googleapis.com/auth/calendar.readonly"),
         Scope("https://www.googleapis.com/auth/calendar.events.readonly")
     )
+    private var googleSignInAccount: GoogleSignInAccount? = null
 
-
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityUserHomeBinding.inflate(layoutInflater)
@@ -55,7 +62,7 @@ class UserHomeActivity : AppCompatActivity() {
         Log.d("ClientIDKey", "Client ID: $clientId")
 
 
-        binding.tvCalendarEvents.visibility = View.GONE
+      //  binding.tvCalendarEvents.visibility = View.GONE
 
         binding.ivProfile.setOnClickListener {
             navigation.navigateMsgToAnotherActivity(
@@ -75,35 +82,33 @@ class UserHomeActivity : AppCompatActivity() {
         viewModel.loading.observe(this) { isLoading ->
             if (isLoading) {
                 binding.tvCalendarEvents.text = "Loading events..."
-                binding.tvCalendarEvents.visibility = View.VISIBLE
+               // binding.tvCalendarEvents.visibility = View.VISIBLE
             }
         }
         viewModel.error.observe(this) { errorMsg ->
             errorMsg?.let {
                 binding.tvCalendarEvents.text = "Error: $it"
-                binding.tvCalendarEvents.visibility = View.VISIBLE
+                //binding.tvCalendarEvents.visibility = View.VISIBLE
             }
         }
     }
 
     private fun setupTabListener() {
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            @RequiresApi(Build.VERSION_CODES.O)
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 when (tab?.position) {
                     1 -> {
-                        binding.tvCalendarEvents.visibility = View.VISIBLE
+                        binding.tvCalendarEvents.visibility = android.view.View.VISIBLE
                         ensureCalendarAccess()
                     }
-
-                    else -> binding.tvCalendarEvents.visibility = View.GONE
+                    else -> binding.tvCalendarEvents.visibility = android.view.View.GONE
                 }
             }
-
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
             override fun onTabReselected(tab: TabLayout.Tab?) {}
         })
     }
-
     private fun setupClickListeners() {
         binding.btnSearch.setOnClickListener {
             Toast.makeText(this, "Search coming soon!", Toast.LENGTH_SHORT).show()
@@ -112,29 +117,17 @@ class UserHomeActivity : AppCompatActivity() {
 
     // ----- Permission Handling for Audio -----
     private fun checkPermissionsAndNavigate() {
-        val neededPermissions = mutableListOf<String>()
-
-        // Check for Audio permission
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-            != PackageManager.PERMISSION_GRANTED) {
-            neededPermissions.add(Manifest.permission.RECORD_AUDIO)
-        }
-
-        // Check for Location permission
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED) {
-            neededPermissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
-        }
-
-        if (neededPermissions.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, neededPermissions.toTypedArray(), 100)
+        if (ContextCompat.checkSelfPermission(
+                this, Manifest.permission.RECORD_AUDIO
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this, arrayOf(Manifest.permission.RECORD_AUDIO), 100
+            )
         } else {
             navigateToAudioRec()
         }
     }
-
-
-
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -157,8 +150,8 @@ class UserHomeActivity : AppCompatActivity() {
         )
         finish()
     }
-
     // ----- Calendar Permissions and Google Sign-In -----
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun checkCalendarPermission() {
         if (ContextCompat.checkSelfPermission(
                 this, Manifest.permission.READ_CALENDAR
@@ -170,6 +163,7 @@ class UserHomeActivity : AppCompatActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -180,7 +174,16 @@ class UserHomeActivity : AppCompatActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun ensureCalendarAccess() {
+        if (!isGooglePlayServicesAvailable()) {
+            Toast.makeText(this, "Google Play Services not available", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (!isDeviceOnline()) {
+            Toast.makeText(this, "No Internet connection", Toast.LENGTH_LONG).show()
+            return
+        }
         val account = GoogleSignIn.getLastSignedInAccount(this)
         if (account == null || !GoogleSignIn.hasPermissions(
                 account,
@@ -189,12 +192,13 @@ class UserHomeActivity : AppCompatActivity() {
         ) {
             requestGoogleSignIn()
         } else {
-            getAccessTokenAndLoadEvents(account)
+            googleSignInAccount = account
+            fetchCalendarEvents()
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun requestGoogleSignIn() {
-
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestScopes(
@@ -202,45 +206,69 @@ class UserHomeActivity : AppCompatActivity() {
                 Scope("https://www.googleapis.com/auth/calendar.events.readonly")
             )
             .requestIdToken(clientId)
+            .requestServerAuthCode(clientId, false) // to enable code exchange for token
             .build()
 
         val googleSignInClient = GoogleSignIn.getClient(this, gso)
         signInLauncher.launch(googleSignInClient.signInIntent)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private val signInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            .addOnSuccessListener(this::getAccessTokenAndLoadEvents)
+            .addOnSuccessListener { account ->
+                googleSignInAccount = account
+                fetchCalendarEvents()
+            }
             .addOnFailureListener {
                 binding.tvCalendarEvents.text = "Sign-in failed: ${it.message}"
-                binding.tvCalendarEvents.visibility = View.VISIBLE
+                binding.tvCalendarEvents.visibility = android.view.View.VISIBLE
             }
     }
 
-    private fun getAccessTokenAndLoadEvents(account: GoogleSignInAccount) {
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun fetchCalendarEvents() {
         CoroutineScope(Dispatchers.IO).launch {
-            val credential = GoogleAccountCredential.usingOAuth2(
-                this@UserHomeActivity,
-                CALENDAR_SCOPES.map { it.scopeUri }
-            ).setBackOff(ExponentialBackOff()).apply {
-                selectedAccount = account.account
-            }
-
             try {
-                val token = credential.token
+                // Get access token for REST API
+                val accessToken = googleSignInAccount?.account?.let {
+                    GoogleAuthUtil.getToken(
+                        this@UserHomeActivity,
+                        it,
+                        "oauth2:https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly"
+                    )
+                }
+                val retrofit = accessToken?.let { RetrofitBuilder.getCalendarRetrofit(it) }
+                val service = retrofit?.create(GoogleCalendarService::class.java)
+                val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
+                val eventsResponse = service?.getEvents(timeMin = now)
+                val calendarEvents = eventsResponse?.items
+
                 withContext(Dispatchers.Main) {
-                    accessToken = token
-                    viewModel.loadCalendarEvents(token)
+                    if (calendarEvents != null) {
+                        displayEvents(calendarEvents)
+                    }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     binding.tvCalendarEvents.text = "Error: ${e.localizedMessage}"
-                    binding.tvCalendarEvents.visibility = View.VISIBLE
+                    binding.tvCalendarEvents.visibility = android.view.View.VISIBLE
                 }
             }
         }
+    }
+
+    // ----- Utility: Check Play Services & Network -----
+    private fun isGooglePlayServicesAvailable(): Boolean {
+        val status = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this)
+        return status == ConnectionResult.SUCCESS
+    }
+    private fun isDeviceOnline(): Boolean {
+        val connMgr = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkInfo = connMgr.activeNetworkInfo
+        return (networkInfo != null && networkInfo.isConnected)
     }
 
     // ----- Display Events -----
@@ -249,8 +277,8 @@ class UserHomeActivity : AppCompatActivity() {
             binding.tvCalendarEvents.text = "No events found."
         } else {
             binding.tvCalendarEvents.text =
-                events.joinToString("\n\n") { "📅 ${it.summary}\n⏰ ${it.startTime}" }
+                events.joinToString("\n\n") { "📅 ${it.summary}\n⏰ ${it.start?.dateTime ?: it.start?.date}" }
         }
-        binding.tvCalendarEvents.visibility = View.VISIBLE
+        binding.tvCalendarEvents.visibility = android.view.View.VISIBLE
     }
 }

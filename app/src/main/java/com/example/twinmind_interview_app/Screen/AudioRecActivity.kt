@@ -85,10 +85,6 @@ class AudioRecActivity : AppCompatActivity() {
         selectTab(1) // Default to Notes tab
         showUserLocationDateTime()
 
-
-        val apiKey = BuildConfig.GEMINI_API_KEY
-        Log.d("GeminiKey", "Gemini Key: $apiKey")
-
         if (checkAudioPermission()) {
             prepareSpeechRecognizer()
             startRecording()
@@ -168,7 +164,6 @@ class AudioRecActivity : AppCompatActivity() {
         val etMessage = view.findViewById<EditText>(R.id.etMessage)
         val btnSend = view.findViewById<ImageView>(R.id.btnSend)
         val bottomSheetTranscript = view.findViewById<TextView>(R.id.bottomSheetTranscript)
-        bottomSheetTranscript.visibility = View.GONE
 
         // Validate API key before setting up chat
         if (API_KEY.isBlank()) {
@@ -468,12 +463,13 @@ class AudioRecActivity : AppCompatActivity() {
             finish()
         }
         binding.shareBtn.setOnClickListener { /* share */ }
-        binding.editNotesFab.setOnClickListener { }
+        //binding.editNotesFab.setOnClickListener { }
         binding.btnTranscript.setOnClickListener { }
         binding.btnstop.setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {
                 stopRecordingAndRefresh()
             }
+
         }
     }
 
@@ -482,8 +478,11 @@ class AudioRecActivity : AppCompatActivity() {
         currentTab = position
         updateTabAppearance()
         showTabContent(position)
+        // This ensures FAB visibility is always correct even if showTabContent is changed later.
+       // binding.editNotesFab.visibility = if (position == 1) View.VISIBLE else View.GONE
         updateTranscriptAllUIs()
     }
+
 
     private fun updateTabAppearance() {
         resetTabAppearance(binding.tabQuestions)
@@ -516,7 +515,7 @@ class AudioRecActivity : AppCompatActivity() {
         val view = layoutInflater.inflate(layoutId, binding.tabContentContainer, false)
         binding.tabContentContainer.removeAllViews()
         binding.tabContentContainer.addView(view)
-        binding.editNotesFab.visibility = if (position == 1) View.VISIBLE else View.GONE
+      //  binding.editNotesFab.visibility = if (position == 1) View.VISIBLE else View.GONE
 
         if (position == 2) {
             val rv =

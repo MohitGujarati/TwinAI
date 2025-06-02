@@ -22,21 +22,44 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val _messages = MutableLiveData<List<ChatMessage>>(emptyList())
     val messages: LiveData<List<ChatMessage>> = _messages
 
-    fun sendMessage(userMsg: String, transcriptDao: TranscriptSegmentDao, apiKey: String) {
-        if (userMsg.isBlank() || apiKey.isBlank()) {
-            _messages.value = _messages.value.orEmpty() + ChatMessage("API key or message missing!", false)
-            return
-        }
 
-        val currentMessages = _messages.value.orEmpty()
-        _messages.value = currentMessages + ChatMessage(userMsg, true)
 
-        viewModelScope.launch {
-            _messages.value = _messages.value.orEmpty() + ChatMessage("Thinking...", false)
+        fun sendMessage(userMsg: String, transcriptDao: TranscriptSegmentDao, apiKey: String) {
+            if (userMsg.isBlank() || apiKey.isBlank()) {
+                _messages.value = _messages.value.orEmpty() + ChatMessage("API key or message missing!", false)
+                return
+            }
 
-            // Build conversation history for context
-            val conversationHistory = buildString {
-                append("""
+            val currentMessages = _messages.value.orEmpty()
+            _messages.value = currentMessages + ChatMessage(userMsg, true)
+
+            viewModelScope.launch {
+                _messages.value = _messages.value.orEmpty() + ChatMessage("Thinking...", false)
+
+                // 1. Get transcript data from Room
+                val transcriptSegments = withContext(Dispatchers.IO) {
+                    try {
+                        // You can change getAll() to get recent, or filter, as you like
+                        transcriptDao.getAll()
+                    } catch (e: Exception) {
+                        emptyList()
+                    }
+                }
+
+                // 2. Prepare transcript context
+                val transcriptContext = buildString {
+                    if (transcriptSegments.isNotEmpty()) {
+                        append("# Transcript Data:\n")
+                        transcriptSegments.takeLast(10).forEach { segment ->
+                            append("- ${segment.text}\n")
+                        }
+                        append("\n")
+                    }
+                }
+
+                // 3. Prepare conversation history context
+                val conversationHistory = buildString {
+                    append("""
 # AI Prompt: please learn who are we and how we are going to use you
 
 Understanding TwinMind
@@ -73,51 +96,49 @@ TwinMind captures and processes audio from meetings, lectures, conversations, an
 ## Use Cases
 When referencing TwinMind, understand it as a comprehensive productivity tool that eliminates the need for manual note-taking by automatically capturing, processing, and organizing spoken information into actionable insights and content.
 
-This is your task -> here you will have data of user saved information. He will ask you questions on that and you have to answer them accordingly in a way that a normal 10-year-old child can understand.
+This is your task no need to say to user -> here you will have data of user saved information. He will ask you questions on that and you have to answer them accordingly in a way that a normal 10-year-old child can understand.
 
+""
 """.trimIndent())
-
-                // Add recent conversation history for context
-                currentMessages.takeLast(5).forEach { msg ->
-                    if (msg.isUser) {
-                        append("\nUser: ${msg.message}")
-                    } else if (msg.message != "Thinking...") {
-                        append("\nAssistant: ${msg.message}")
+                    // Add transcript context
+                    append("\n$transcriptContext")
+                    // Add chat context
+                    currentMessages.takeLast(5).forEach { msg ->
+                        if (msg.isUser) append("\nUser: ${msg.message}")
+                        else if (msg.message != "Thinking...") append("\nAssistant: ${msg.message}")
                     }
+                    append("\nUser: $userMsg")
+                    append("\nAssistant: ")
                 }
 
-                append("\nUser: $userMsg")
-                append("\nAssistant: ")
-            }
-
-            val request = GeminiRequest(
-                contents = listOf(
-                    GeminiContent(
-                        parts = listOf(GeminiPart(conversationHistory))
+                val request = GeminiRequest(
+                    contents = listOf(
+                        GeminiContent(
+                            parts = listOf(GeminiPart(conversationHistory))
+                        )
                     )
                 )
-            )
 
-            try {
-                val response = GeminiApiClient.service.generateContent(apiKey, request)
-                val reply = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
-                    ?: "No reply from Gemini"
-                val filteredMessages = _messages.value.orEmpty().filter { it.message != "Thinking..." }
-                _messages.value = filteredMessages + ChatMessage(reply, false)
-            } catch (e: Exception) {
-                Log.e("ChatViewModel", "Gemini API Error", e)
-                val filteredMessages = _messages.value.orEmpty().filter { it.message != "Thinking..." }
-                val errorMessage = when {
-                    e.message?.contains("400") == true -> "Bad request - please check your API key and try again"
-                    e.message?.contains("401") == true -> "Invalid API key - please check your Gemini API key"
-                    e.message?.contains("403") == true -> "API access forbidden - check your API key permissions"
-                    e.message?.contains("404") == true -> "API endpoint not found"
-                    e.message?.contains("429") == true -> "Too many requests - please wait a moment"
-                    else -> "Network error: ${e.localizedMessage}"
+                try {
+                    val response = GeminiApiClient.service.generateContent(apiKey, request)
+                    val reply = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
+                        ?: "No reply from Gemini"
+                    val filteredMessages = _messages.value.orEmpty().filter { it.message != "Thinking..." }
+                    _messages.value = filteredMessages + ChatMessage(reply, false)
+                } catch (e: Exception) {
+                    Log.e("ChatViewModel", "Gemini API Error", e)
+                    val filteredMessages = _messages.value.orEmpty().filter { it.message != "Thinking..." }
+                    val errorMessage = when {
+                        e.message?.contains("400") == true -> "Bad request - please check your API key and try again"
+                        e.message?.contains("401") == true -> "Invalid API key - please check your Gemini API key"
+                        e.message?.contains("403") == true -> "API access forbidden - check your API key permissions"
+                        e.message?.contains("404") == true -> "API endpoint not found"
+                        e.message?.contains("429") == true -> "Too many requests - please wait a moment"
+                        else -> "Network error: ${e.localizedMessage}"
+                    }
+                    _messages.value = filteredMessages + ChatMessage("Error: $errorMessage", false)
                 }
-                _messages.value = filteredMessages + ChatMessage("Error: $errorMessage", false)
             }
         }
     }
 
-}
