@@ -572,7 +572,7 @@ class AudioRecActivity : AppCompatActivity() {
 
     private fun insertDemoTranscriptAndGenerateSummary() {
         CoroutineScope(Dispatchers.IO).launch {
-            transcriptDao.deleteAll() // optional, cleans previous runs
+           // transcriptDao.deleteAll() // optional, cleans previous runs
             val demoText = """
     Today’s meeting covered the new product launch timeline. John said we should finish the prototype by Friday. Sarah agreed and suggested we test with five users before launch. We also decided on a blue color scheme. The marketing team will prepare the announcement next week. No major issues were found in the last sprint. We set the next meeting for Monday morning. Everyone agreed to send updates by Sunday evening.
 

@@ -83,5 +83,8 @@
     </string>
     <string name="twinmind_is_listening_in_the_background">TwinMind is listening in the background</string>
     <string name="audio_wave_indicator">Audio wave indicator</string>
+    <string name="loading_calendar_events">Loading calendar events...</string>
+    <string name="public_speaking_practice">Public Speaking Practice</string>
+    >
 
 </resources>

@@ -14,12 +14,16 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.twinmind_interview_app.BuildConfig
 import com.example.twinmind_interview_app.Utils.navigateHandlers
+import com.example.twinmind_interview_app.adapter.MemoryTranscriptAdapter
 import com.example.twinmind_interview_app.databinding.ActivityUserHomeBinding
 import com.example.twinmind_interview_app.model.CalendarEvent
 import com.example.twinmind_interview_app.network.GoogleCalendarService
 import com.example.twinmind_interview_app.network.RetrofitBuilder
+import com.example.twinmind_interview_app.repository.TranscriptDatabase
+import com.example.twinmind_interview_app.repository.TranscriptSegmentDao
 import com.example.twinmind_interview_app.viewmodel.UserHomeViewModel
 import com.google.android.gms.auth.GoogleAuthUtil
 import com.google.android.gms.auth.api.signin.*
@@ -40,6 +44,10 @@ class UserHomeActivity : AppCompatActivity() {
     private var accessToken: String? = null
     val clientId = BuildConfig.CLIENT_ID
 
+    private lateinit var memoryAdapter: MemoryTranscriptAdapter
+    private lateinit var transcriptDao: TranscriptSegmentDao
+
+
     private val CALENDAR_SCOPES = listOf(
         Scope("https://www.googleapis.com/auth/calendar.readonly"),
         Scope("https://www.googleapis.com/auth/calendar.events.readonly")
@@ -53,10 +61,16 @@ class UserHomeActivity : AppCompatActivity() {
         setContentView(binding.root)
         navigation = navigateHandlers()
 
+        setupMemoriesRecycler()
+        //loadMemoriesFromRoom()
         setupClickListeners()
         setupTabListener()
         setupObservers()
         checkCalendarPermission()
+
+        transcriptDao = TranscriptDatabase.getDatabase(applicationContext).transcriptDao()
+
+
 
         val clientId = BuildConfig.CLIENT_ID
         Log.d("ClientIDKey", "Client ID: $clientId")
@@ -72,6 +86,23 @@ class UserHomeActivity : AppCompatActivity() {
 
         binding.btnCapture.setOnClickListener {
             checkPermissionsAndNavigate()
+        }
+    }
+
+
+    private fun setupMemoriesRecycler() {
+        memoryAdapter = MemoryTranscriptAdapter(listOf())
+        binding.rvMemories.layoutManager = LinearLayoutManager(this)
+        binding.rvMemories.adapter = memoryAdapter
+    }
+    private fun loadMemoriesFromRoom() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val memories = transcriptDao.getAll()
+            withContext(Dispatchers.Main) {
+                memoryAdapter.setItems(memories)
+                binding.rvMemories.visibility = android.view.View.VISIBLE
+                binding.tvCalendarEvents.visibility = android.view.View.GONE
+            }
         }
     }
 
@@ -98,6 +129,10 @@ class UserHomeActivity : AppCompatActivity() {
             @RequiresApi(Build.VERSION_CODES.O)
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 when (tab?.position) {
+                    0 -> {
+                        loadMemoriesFromRoom()
+                        binding.tvCalendarEvents.visibility = android.view.View.GONE
+                    }
                     1 -> {
                         binding.tvCalendarEvents.visibility = android.view.View.VISIBLE
                         ensureCalendarAccess()
