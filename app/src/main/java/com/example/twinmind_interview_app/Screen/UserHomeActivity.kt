@@ -3,6 +3,7 @@ package com.example.twinmind_interview_app.Screen
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -10,6 +11,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.twinmind_interview_app.BuildConfig
 import com.example.twinmind_interview_app.Screen.AudioRecActivity
 import com.example.twinmind_interview_app.Screen.ProfileSectionaActivity
 import com.example.twinmind_interview_app.databinding.ActivityUserHomeBinding
@@ -30,13 +32,12 @@ class UserHomeActivity : AppCompatActivity() {
     private lateinit var navigation: navigateHandlers
     private val viewModel: UserHomeViewModel by viewModels()
     private var accessToken: String? = null
+    val clientId = BuildConfig.CLIENT_ID
 
     private val CALENDAR_SCOPES = listOf(
         Scope("https://www.googleapis.com/auth/calendar.readonly"),
         Scope("https://www.googleapis.com/auth/calendar.events.readonly")
     )
-    private val CLIENT_ID =
-        "824470750323-fm7ldk425ri1n3qaq88p848jj0vjcgfk.apps.googleusercontent.com"
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,6 +50,10 @@ class UserHomeActivity : AppCompatActivity() {
         setupTabListener()
         setupObservers()
         checkCalendarPermission()
+
+        val clientId = BuildConfig.CLIENT_ID
+        Log.d("ClientIDKey", "Client ID: $clientId")
+
 
         binding.tvCalendarEvents.visibility = View.GONE
 
@@ -89,6 +94,7 @@ class UserHomeActivity : AppCompatActivity() {
                         binding.tvCalendarEvents.visibility = View.VISIBLE
                         ensureCalendarAccess()
                     }
+
                     else -> binding.tvCalendarEvents.visibility = View.GONE
                 }
             }
@@ -106,17 +112,29 @@ class UserHomeActivity : AppCompatActivity() {
 
     // ----- Permission Handling for Audio -----
     private fun checkPermissionsAndNavigate() {
-        if (ContextCompat.checkSelfPermission(
-                this, Manifest.permission.RECORD_AUDIO
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this, arrayOf(Manifest.permission.RECORD_AUDIO), 100
-            )
+        val neededPermissions = mutableListOf<String>()
+
+        // Check for Audio permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED) {
+            neededPermissions.add(Manifest.permission.RECORD_AUDIO)
+        }
+
+        // Check for Location permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED) {
+            neededPermissions.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+
+        if (neededPermissions.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, neededPermissions.toTypedArray(), 100)
         } else {
             navigateToAudioRec()
         }
     }
+
+
+
 
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -176,13 +194,14 @@ class UserHomeActivity : AppCompatActivity() {
     }
 
     private fun requestGoogleSignIn() {
+
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestScopes(
                 Scope("https://www.googleapis.com/auth/calendar.readonly"),
                 Scope("https://www.googleapis.com/auth/calendar.events.readonly")
             )
-            .requestIdToken(CLIENT_ID)
+            .requestIdToken(clientId)
             .build()
 
         val googleSignInClient = GoogleSignIn.getClient(this, gso)
@@ -229,7 +248,8 @@ class UserHomeActivity : AppCompatActivity() {
         if (events.isEmpty()) {
             binding.tvCalendarEvents.text = "No events found."
         } else {
-            binding.tvCalendarEvents.text = events.joinToString("\n\n") { "📅 ${it.summary}\n⏰ ${it.startTime}" }
+            binding.tvCalendarEvents.text =
+                events.joinToString("\n\n") { "📅 ${it.summary}\n⏰ ${it.startTime}" }
         }
         binding.tvCalendarEvents.visibility = View.VISIBLE
     }

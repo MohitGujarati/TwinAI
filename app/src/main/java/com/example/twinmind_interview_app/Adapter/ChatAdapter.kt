@@ -34,11 +34,11 @@ class ChatAdapter(val messages: MutableList<ChatMessage>) :
     override fun getItemCount(): Int = messages.size
 
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-        val msg = messages[position].message
+        val message = messages[position]
         if (holder is UserViewHolder) {
-            holder.bind(msg)
+            holder.bind(message.message)
         } else if (holder is BotViewHolder) {
-            holder.bind(msg)
+            holder.bind(message.message)
         }
     }
 
@@ -47,14 +47,30 @@ class ChatAdapter(val messages: MutableList<ChatMessage>) :
         notifyItemInserted(messages.size - 1)
     }
 
-    // Optional: clear all messages
     fun clearMessages() {
+        val previousSize = messages.size
         messages.clear()
+        notifyItemRangeRemoved(0, previousSize)
+    }
+
+    fun updateMessages(newMessages: List<ChatMessage>) {
+        messages.clear()
+        messages.addAll(newMessages)
         notifyDataSetChanged()
     }
 
-    // --- ViewHolder classes ---
+    fun removeThinkingBubbleIfPresent() {
+        val lastIndex = messages.size - 1
+        if (lastIndex >= 0 &&
+            messages[lastIndex].message == "Thinking..." &&
+            !messages[lastIndex].isUser) {
+            messages.removeAt(lastIndex)
+            notifyItemRemoved(lastIndex)
+        }
+    }
 
+
+    // --- ViewHolder classes ---
     class UserViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val textView: TextView = itemView.findViewById(R.id.tvMessageUser)
         fun bind(msg: String) {
@@ -68,21 +84,5 @@ class ChatAdapter(val messages: MutableList<ChatMessage>) :
             textView.text = msg
         }
     }
-}
 
-// --- Extension helpers (outside the class) ---
-
-fun ChatAdapter.removeThinkingBubbleIfPresent() {
-    if (itemCount > 0 && getItem(itemCount - 1).message == "Thinking..." && !getItem(itemCount - 1).isUser) {
-        removeLast()
-    }
-}
-
-fun ChatAdapter.getItem(index: Int): ChatMessage = messages[index]
-
-fun ChatAdapter.removeLast() {
-    if (itemCount > 0) {
-        messages.removeAt(messages.size - 1)
-        notifyItemRemoved(messages.size)
-    }
 }

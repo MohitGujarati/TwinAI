@@ -2,6 +2,8 @@ package com.example.twinmind_interview_app.Screen
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.location.Address
+import android.location.Geocoder
 import android.os.*
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -14,29 +16,35 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.twinmind_interview_app.adapter.ChatAdapter
-import com.example.twinmind_interview_app.adapter.removeThinkingBubbleIfPresent
+import com.example.twinmind_interview_app.BuildConfig
 import com.example.twinmind_interview_app.R
 import com.example.twinmind_interview_app.Utils.navigateHandlers
+import com.example.twinmind_interview_app.adapter.ChatAdapter
 import com.example.twinmind_interview_app.adapter.TranscriptAdapter
 import com.example.twinmind_interview_app.databinding.ActivityAudioRecBinding
 import com.example.twinmind_interview_app.model.ChatMessage
-import com.example.twinmind_interview_app.model.GeminiContent
-import com.example.twinmind_interview_app.model.GeminiPart
-import com.example.twinmind_interview_app.model.GeminiRequest
 import com.example.twinmind_interview_app.model.TranscriptSegmentEntity
-import com.example.twinmind_interview_app.network.GeminiApiClient
 import com.example.twinmind_interview_app.repository.TranscriptDatabase
 import com.example.twinmind_interview_app.repository.TranscriptSegmentDao
+import com.example.twinmind_interview_app.viewmodel.ChatViewModel
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import kotlinx.coroutines.*
+import java.text.SimpleDateFormat
 import java.util.*
 
+
 class AudioRecActivity : AppCompatActivity() {
+
+    val API_KEY = BuildConfig.GEMINI_API_KEY
+
 
     private lateinit var binding: ActivityAudioRecBinding
     private lateinit var navigation: navigateHandlers
@@ -58,6 +66,11 @@ class AudioRecActivity : AppCompatActivity() {
 
     // Adapter for transcript RecyclerView
     private var transcriptAdapter: TranscriptAdapter? = null
+    private val chatMessages = mutableListOf<ChatMessage>()
+    private lateinit var chatAdapter: ChatAdapter
+
+    private val viewModel: ChatViewModel by viewModels()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,6 +83,11 @@ class AudioRecActivity : AppCompatActivity() {
         setupTabs()
         setupClickListeners()
         selectTab(1) // Default to Notes tab
+        showUserLocationDateTime()
+
+
+        val apiKey = BuildConfig.GEMINI_API_KEY
+        Log.d("GeminiKey", "Gemini Key: $apiKey")
 
         if (checkAudioPermission()) {
             prepareSpeechRecognizer()
@@ -81,102 +99,151 @@ class AudioRecActivity : AppCompatActivity() {
         }
     }
 
+    //Location
+
+    private fun showUserLocationDateTime() {
+        // Permission check (request if needed)
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                101
+            )
+            binding.tvUserLocation.text = "Permission required to get location"
+            return
+        }
+
+        // Get user location
+        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        fusedLocationClient.getCurrentLocation(
+            Priority.PRIORITY_HIGH_ACCURACY,
+            CancellationTokenSource().token
+        ).addOnSuccessListener { location ->
+            var city = "Unknown City"
+            var state = "Unknown State"
+            if (location != null) {
+                try {
+                    val geocoder = Geocoder(this, Locale.getDefault())
+                    val addresses =
+                        geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                    if (!addresses.isNullOrEmpty()) {
+                        city = addresses[0].locality ?: city
+                        state = addresses[0].adminArea ?: state
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            // Format date & time
+            val now = Date()
+            val date = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(now)
+            val time = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(now)
+            val stateAbbr = if (state == "New Jersey") "NJ" else state.take(2)
+            // Set final string
+            binding.tvUserLocation.text = "$date • $time • $city, $stateAbbr"
+        }.addOnFailureListener {
+            binding.tvUserLocation.text = "Failed to get location"
+        }
+    }
+
+
+    // Add this updated method to your AudioRecActivity class
     private fun showTranscriptBottomSheet() {
         val bottomSheetDialog = BottomSheetDialog(this, R.style.BottomSheetDialogTheme)
         val view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_transcript, null)
         bottomSheetDialog.setContentView(view)
-        val bottomSheet = bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+        val bottomSheet =
+            bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
         bottomSheet?.layoutParams?.height = ViewGroup.LayoutParams.MATCH_PARENT
 
         val closeBtn = view.findViewById<ImageView>(R.id.closeBtn)
         closeBtn.setOnClickListener { bottomSheetDialog.dismiss() }
 
-        // ---- BEGIN CHAT SETUP ----
         val rvChat = view.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvChat)
         val etMessage = view.findViewById<EditText>(R.id.etMessage)
         val btnSend = view.findViewById<ImageView>(R.id.btnSend)
         val bottomSheetTranscript = view.findViewById<TextView>(R.id.bottomSheetTranscript)
-        bottomSheetTranscript.visibility = View.GONE // Hide info text
+        bottomSheetTranscript.visibility = View.GONE
 
-        val chatMessages = mutableListOf<ChatMessage>()
-        val chatAdapter = ChatAdapter(chatMessages)
-        rvChat.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
+        // Validate API key before setting up chat
+        if (API_KEY.isBlank()) {
+            Toast.makeText(this, "Gemini API key not configured", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        // 1. Setup adapter
+        val chatAdapter = ChatAdapter(mutableListOf())
+        rvChat.layoutManager = LinearLayoutManager(this).apply {
+            stackFromEnd = true
+            reverseLayout = false
+        }
         rvChat.adapter = chatAdapter
 
+        // 2. Observe ViewModel messages
+        viewModel.messages.observe(this) { messages ->
+            chatAdapter.updateMessages(messages)
+            if (messages.isNotEmpty()) {
+                rvChat.scrollToPosition(chatAdapter.itemCount - 1)
+            }
+
+            // Enable send button only if not currently thinking
+            val isThinking = messages.any { it.message == "Thinking..." && !it.isUser }
+            btnSend.isEnabled = !isThinking
+            btnSend.alpha = if (isThinking) 0.5f else 1.0f
+        }
+
+        // 3. Send button: call ViewModel to add new message and trigger Gemini call
         btnSend.setOnClickListener {
             val userMsg = etMessage.text.toString().trim()
-            if (userMsg.isNotEmpty()) {
-                // 1. Show user message
-                chatAdapter.addMessage(ChatMessage(userMsg, true))
-                rvChat.scrollToPosition(chatAdapter.itemCount - 1)
+            if (userMsg.isNotEmpty() && btnSend.isEnabled) {
+                viewModel.sendMessage(userMsg, transcriptDao, API_KEY)
                 etMessage.text.clear()
-                btnSend.isEnabled = false
 
-                // 2. Get transcript context and call Gemini API (coroutine)
-                CoroutineScope(Dispatchers.Main).launch {
-                    // Show typing indicator (optional)
-                    chatAdapter.addMessage(ChatMessage("Thinking...", false))
-                    rvChat.scrollToPosition(chatAdapter.itemCount - 1)
-
-                    // Load transcript from Room (on IO dispatcher)
-                    val segments = withContext(Dispatchers.IO) { transcriptDao.getAll() }
-                    val contextText = segments.joinToString("\n") { it.text }
-                    Log.d("AudioRecActivity", "Context: $contextText")
-
-                    // Compose Gemini prompt
-                    val prompt = """
-                        ${getString(R.string.gemini_prompt)}{}
-                Context:
-                $contextText
-
-                Question:
-                $userMsg
-
-                Answer in clear, helpful language:
-            """.trimIndent()
-
-                    // Build Gemini request
-                    val request = GeminiRequest(
-                        contents = listOf(
-                            GeminiContent(
-                                parts = listOf(GeminiPart(prompt))
-                            )
-                        )
-                    )
-
-                    try {
-                        // Make Gemini API call
-                        val response = GeminiApiClient.service.generateContent(
-                            apiKey = "",
-                            request = request
-                        )
-                        // Remove "Thinking..." bubble
-                        chatAdapter.removeThinkingBubbleIfPresent()
-                        // Show Gemini's reply
-                        val reply = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
-                            ?: "Sorry, no answer from Gemini."
-                        chatAdapter.addMessage(ChatMessage(reply, false))
-                        rvChat.scrollToPosition(chatAdapter.itemCount - 1)
-                    } catch (e: Exception) {
-                        chatAdapter.removeThinkingBubbleIfPresent()
-                        chatAdapter.addMessage(ChatMessage("Error: ${e.localizedMessage}", false))
-                        rvChat.scrollToPosition(chatAdapter.itemCount - 1)
-                    } finally {
-                        btnSend.isEnabled = true
-                    }
-                }
+                // Hide keyboard
+                val imm =
+                    getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(etMessage.windowToken, 0)
+            } else if (userMsg.isEmpty()) {
+                Toast.makeText(this, "Please enter a message", Toast.LENGTH_SHORT).show()
             }
         }
 
+        // 4. Handle enter key in EditText
+        etMessage.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND ||
+                (event?.keyCode == android.view.KeyEvent.KEYCODE_ENTER && event.action == android.view.KeyEvent.ACTION_DOWN)
+            ) {
+                btnSend.performClick()
+                true
+            } else {
+                false
+            }
+        }
 
-        // ---- END CHAT SETUP ----
+        // 5. Add welcome message if no messages exist
+        if (viewModel.messages.value.isNullOrEmpty()) {
+            val welcomeMessages = listOf(
+                ChatMessage(
+                    "Hello! I'm here to help you with questions about your transcript.",
+                    false
+                )
+            )
+            viewModel._messages.value = welcomeMessages
+        }
 
         bottomSheetDialog.show()
     }
 
+
     private fun checkAudioPermission(): Boolean {
         return if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-            != PackageManager.PERMISSION_GRANTED) {
+            != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.RECORD_AUDIO),
@@ -191,7 +258,8 @@ class AudioRecActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1 && grantResults.isNotEmpty() &&
-            grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            grantResults[0] == PackageManager.PERMISSION_GRANTED
+        ) {
             prepareSpeechRecognizer()
             startRecording()
         } else {
@@ -213,6 +281,7 @@ class AudioRecActivity : AppCompatActivity() {
                         restartSpeechToTextWithDelay()
                     }
                 }
+
                 override fun onResults(results: Bundle) {
                     val matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     if (!matches.isNullOrEmpty()) {
@@ -222,12 +291,15 @@ class AudioRecActivity : AppCompatActivity() {
                         restartSpeechToTextWithDelay()
                     }
                 }
+
                 override fun onPartialResults(partialResults: Bundle) {
-                    val matches = partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    val matches =
+                        partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     if (!matches.isNullOrEmpty()) {
                         onSpeechResult(matches[0])
                     }
                 }
+
                 override fun onEvent(eventType: Int, params: Bundle?) {}
             })
         }
@@ -308,6 +380,7 @@ class AudioRecActivity : AppCompatActivity() {
                 updateTimerText()
                 updateTranscriptAllUIs()
             }
+
             override fun onFinish() {}
         }.start()
     }
@@ -329,7 +402,10 @@ class AudioRecActivity : AppCompatActivity() {
 
     private fun startSpeechToText() {
         val intent = android.content.Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
@@ -443,7 +519,8 @@ class AudioRecActivity : AppCompatActivity() {
         binding.editNotesFab.visibility = if (position == 1) View.VISIBLE else View.GONE
 
         if (position == 2) {
-            val rv = view.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvTranscriptSegments)
+            val rv =
+                view.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvTranscriptSegments)
             transcriptAdapter = TranscriptAdapter(listOf())
             rv.adapter = transcriptAdapter
             rv.layoutManager = LinearLayoutManager(this)
@@ -461,7 +538,8 @@ class AudioRecActivity : AppCompatActivity() {
     }
 
     private fun updateTranscriptAllUIs() {
-        val transcriptTimeView = binding.tabContentContainer.findViewById<TextView>(R.id.tv_recording_time)
+        val transcriptTimeView =
+            binding.tabContentContainer.findViewById<TextView>(R.id.tv_recording_time)
         if (currentTab == 2) {
             transcriptTimeView?.text = if (isRecording) getCurrentTimerText() else transcriptTime
             loadTranscriptSegments()

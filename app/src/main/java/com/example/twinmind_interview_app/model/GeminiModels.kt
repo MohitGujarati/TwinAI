@@ -9,8 +9,10 @@ data class GeminiRequest(
 
 @JsonClass(generateAdapter = true)
 data class GeminiContent(
+    val role: String = "user",
     val parts: List<GeminiPart>
 )
+
 
 @JsonClass(generateAdapter = true)
 data class GeminiPart(
