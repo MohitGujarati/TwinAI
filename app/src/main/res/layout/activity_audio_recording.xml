@@ -201,6 +201,14 @@
                     android:gravity="center"
                     android:padding="@dimen/dimen_24dp">
 
+                    <LinearLayout
+                        android:id="@+id/LLDemotext"
+                        android:orientation="vertical"
+                        android:gravity="center"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content">
+
+
                     <!-- Audio Wave Icon -->
                     <ImageView
                         android:id="@+id/audioWaveIcon"
@@ -237,7 +245,7 @@
 ">
 
                     </TextView>
-
+                    </LinearLayout>
                 </LinearLayout>
 
             </FrameLayout>

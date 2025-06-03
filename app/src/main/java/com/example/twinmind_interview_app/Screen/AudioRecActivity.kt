@@ -3,13 +3,11 @@ package com.example.twinmind_interview_app.Screen
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.location.Address
-import android.location.Geocoder
+import android.content.res.ColorStateList
 import android.os.*
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,6 +17,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -27,28 +26,23 @@ import com.example.twinmind_interview_app.R
 import com.example.twinmind_interview_app.Utils.navigateHandlers
 import com.example.twinmind_interview_app.adapter.ChatAdapter
 import com.example.twinmind_interview_app.adapter.TranscriptAdapter
-import com.example.twinmind_interview_app.databinding.ActivityAudioRecBinding
+import com.example.twinmind_interview_app.databinding.ActivityAudioRecordingBinding
 import com.example.twinmind_interview_app.model.ChatMessage
 import com.example.twinmind_interview_app.model.TranscriptSegmentEntity
 import com.example.twinmind_interview_app.repository.TranscriptDatabase
 import com.example.twinmind_interview_app.repository.TranscriptSegmentDao
 import com.example.twinmind_interview_app.viewmodel.ChatViewModel
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import io.noties.markwon.Markwon
 import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-
 class AudioRecActivity : AppCompatActivity() {
 
     val API_KEY = BuildConfig.GEMINI_API_KEY
 
-
-    private lateinit var binding: ActivityAudioRecBinding
+    private lateinit var binding: ActivityAudioRecordingBinding
     private lateinit var navigation: navigateHandlers
     private lateinit var transcriptDao: TranscriptSegmentDao
 
@@ -66,190 +60,52 @@ class AudioRecActivity : AppCompatActivity() {
     private var segmentStartTime = 0
     private var currentSegmentText = ""
 
-    // Adapter for transcript RecyclerView
-    private var transcriptAdapter: TranscriptAdapter? = null
-    private val chatMessages = mutableListOf<ChatMessage>()
-    private lateinit var chatAdapter: ChatAdapter
+    // AI-enhanced transcript cache
+    private var aiEnhancedTranscript: String = ""
 
+    //Title genration
+    private var titleGenerated = false
+    private var titleJob: Job? = null
+
+
+    // ViewModel
     private val viewModel: ChatViewModel by viewModels()
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityAudioRecBinding.inflate(layoutInflater)
+        binding = ActivityAudioRecordingBinding.inflate(layoutInflater)
         setContentView(binding.root)
         navigation = navigateHandlers()
-
         transcriptDao = TranscriptDatabase.getDatabase(applicationContext).transcriptDao()
 
         setupTabs()
         setupClickListeners()
         selectTab(1) // Default to Notes tab
-        showUserLocationDateTime()
 
         if (checkAudioPermission()) {
             prepareSpeechRecognizer()
             startRecording()
         }
 
-        binding.btnTranscript.setOnClickListener {
-            showTranscriptBottomSheet()
-        }
+        binding.btnTranscript.setOnClickListener { showTranscriptBottomSheet() }
     }
 
-    //Location
-
-    private fun showUserLocationDateTime() {
-        // Permission check (request if needed)
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                101
-            )
-            binding.tvUserLocation.text = "Permission required to get location"
-            return
-        }
-
-        // Get user location
-        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        fusedLocationClient.getCurrentLocation(
-            Priority.PRIORITY_HIGH_ACCURACY,
-            CancellationTokenSource().token
-        ).addOnSuccessListener { location ->
-            var city = "Unknown City"
-            var state = "Unknown State"
-            if (location != null) {
-                try {
-                    val geocoder = Geocoder(this, Locale.getDefault())
-                    val addresses =
-                        geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                    if (!addresses.isNullOrEmpty()) {
-                        city = addresses[0].locality ?: city
-                        state = addresses[0].adminArea ?: state
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-
-            // Format date & time
-            val now = Date()
-            val date = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(now)
-            val time = SimpleDateFormat("hh:mm a", Locale.getDefault()).format(now)
-            val stateAbbr = if (state == "New Jersey") "NJ" else state.take(2)
-            // Set final string
-            binding.tvUserLocation.text = "$date • $time • $city, $stateAbbr"
-        }.addOnFailureListener {
-            binding.tvUserLocation.text = "Failed to get location"
-        }
-    }
-
-
-    // Add this updated method to your AudioRecActivity class
-    private fun showTranscriptBottomSheet() {
-        val bottomSheetDialog = BottomSheetDialog(this, R.style.BottomSheetDialogTheme)
-        val view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_transcript, null)
-        bottomSheetDialog.setContentView(view)
-        val bottomSheet =
-            bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-        bottomSheet?.layoutParams?.height = ViewGroup.LayoutParams.MATCH_PARENT
-
-        val closeBtn = view.findViewById<ImageView>(R.id.closeBtn)
-        closeBtn.setOnClickListener { bottomSheetDialog.dismiss() }
-
-        val rvChat = view.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvChat)
-        val etMessage = view.findViewById<EditText>(R.id.etMessage)
-        val btnSend = view.findViewById<ImageView>(R.id.btnSend)
-        val bottomSheetTranscript = view.findViewById<TextView>(R.id.bottomSheetTranscript)
-
-        // Validate API key before setting up chat
-        if (API_KEY.isBlank()) {
-            Toast.makeText(this, "Gemini API key not configured", Toast.LENGTH_LONG).show()
-            return
-        }
-
-        // 1. Setup adapter
-        val markwon = Markwon.create(this)
-        val chatAdapter = ChatAdapter(mutableListOf(), markwon)
-        rvChat.layoutManager = LinearLayoutManager(this).apply {
-            stackFromEnd = true
-            reverseLayout = false
-        }
-        rvChat.adapter = chatAdapter
-
-        // 2. Observe ViewModel messages
-        viewModel.messages.observe(this) { messages ->
-            chatAdapter.updateMessages(messages)
-            if (messages.isNotEmpty()) {
-                rvChat.scrollToPosition(chatAdapter.itemCount - 1)
-            }
-
-            // Enable send button only if not currently thinking
-            val isThinking = messages.any { it.message == "Thinking..." && !it.isUser }
-            btnSend.isEnabled = !isThinking
-            btnSend.alpha = if (isThinking) 0.5f else 1.0f
-        }
-
-        // 3. Send button: call ViewModel to add new message and trigger Gemini call
-        btnSend.setOnClickListener {
-            val userMsg = etMessage.text.toString().trim()
-            if (userMsg.isNotEmpty() && btnSend.isEnabled) {
-                viewModel.sendMessage(userMsg, transcriptDao, API_KEY)
-                etMessage.text.clear()
-
-                // Hide keyboard
-                val imm =
-                    getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
-                imm.hideSoftInputFromWindow(etMessage.windowToken, 0)
-            } else if (userMsg.isEmpty()) {
-                Toast.makeText(this, "Please enter a message", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        // 4. Handle enter key in EditText
-        etMessage.setOnEditorActionListener { _, actionId, event ->
-            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND ||
-                (event?.keyCode == android.view.KeyEvent.KEYCODE_ENTER && event.action == android.view.KeyEvent.ACTION_DOWN)
-            ) {
-                btnSend.performClick()
-                true
-            } else {
-                false
-            }
-        }
-
-        // 5. Add welcome message if no messages exist
-        if (viewModel.messages.value.isNullOrEmpty()) {
-            val welcomeMessages = listOf(
-                ChatMessage(
-                    "Hello! I'm here to help you with questions about your transcript.",
-                    false
-                )
-            )
-            viewModel._messages.value = welcomeMessages
-        }
-
-        bottomSheetDialog.show()
-    }
-
-
+    // Permissions
     private fun checkAudioPermission(): Boolean {
         return if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.RECORD_AUDIO),
-                1
-            )
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
             false
         } else true
     }
+
+    private fun getTranscriptWordCount(): Int {
+        // Combine all segment texts, or use your aiEnhancedTranscript
+        val transcript = aiEnhancedTranscript.ifBlank { transcriptText }
+        return transcript.trim().split("\\s+".toRegex()).size
+    }
+
 
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>, grantResults: IntArray
@@ -265,6 +121,7 @@ class AudioRecActivity : AppCompatActivity() {
         }
     }
 
+    // Speech Recognizer
     private fun prepareSpeechRecognizer() {
         if (speechRecognizer == null) {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
@@ -331,9 +188,63 @@ class AudioRecActivity : AppCompatActivity() {
         updateTimerText()
         startTimer()
         startSpeechToText()
+
+        titleJob?.cancel()
+        titleJob = CoroutineScope(Dispatchers.Main).launch {
+            delay(8000) // 8 seconds
+            generateTitleIfNeeded()
+        }
     }
 
-    suspend fun stopRecordingAndRefresh() {
+
+    //Title genration
+    private fun getInitialTranscriptWords(maxWords: Int = 20): String {
+        return transcriptText.trim().split("\\s+".toRegex())
+            .take(maxWords)
+            .joinToString(" ")
+    }
+
+    private fun setTitle(text: String) {
+        val tvTitle = findViewById<TextView>(R.id.tv_title)
+        tvTitle?.text = text
+    }
+
+    private suspend fun generateGeminiTitle(text: String): String {
+        val prompt =
+            "Suggest a short, clear meeting or topic title (max 6 words) for this conversation: \"$text\""
+        // You might want to cache this to avoid duplicate calls
+        return withContext(Dispatchers.IO) {
+            viewModel.enhanceTranscriptWithGemini(prompt, API_KEY)
+        }.trim().replace("\n", "")
+    }
+
+    private fun generateTitleIfNeeded() {
+        if (titleGenerated) return
+        titleGenerated = true
+        val text = getInitialTranscriptWords(20)
+        if (text.isBlank()) {
+            setTitle(getString(R.string.untitled))
+            return
+        }
+        val isOnline =
+            com.example.twinmind_interview_app.network.NetworkUtils.isInternetAvailable(this)
+        if (isOnline) {
+            CoroutineScope(Dispatchers.Main).launch {
+                val title = try {
+                    generateGeminiTitle(text)
+                } catch (e: Exception) {
+                    text.take(32) // fallback: first N characters
+                }
+                setTitle(title)
+            }
+        } else {
+            // Offline: just use the first 6 words as the title
+            setTitle(text.split(" ").take(6).joinToString(" "))
+        }
+    }
+
+
+    suspend fun stopRecordingAndRefresh(showTranscriptTab: Boolean = false) {
         isRecording = false
         continueListening = false
         transcriptTime = getCurrentTimerText()
@@ -342,20 +253,108 @@ class AudioRecActivity : AppCompatActivity() {
         binding.btnTranscript.visibility = View.VISIBLE
         stopTimer()
         stopSpeechToText()
-        // Save the final segment and wait for DB insert to finish
+
+        // Insert demo segment on stop
         withContext(Dispatchers.IO) {
-            saveCurrentSegmentSync()
+            val demoText =
+                "This is CS50, Harvard University's introduction to the intellectual enterprises of computer science and the art of programming. Today, we’ll explore problem solving, abstraction, and algorithms."
+            val segment = TranscriptSegmentEntity(
+                text = demoText,
+                startTime = 0,
+                endTime = 30,
+                synced = false
+            )
+            transcriptDao.insert(segment)
+            saveCurrentSegmentSync() // Optionally keep your own data as well
         }
-        viewModel.generateSummary(transcriptDao, API_KEY)
 
-        selectTab(1) // Move to Notes tab
-        updateTranscriptAllUIs()
-        insertDemoTranscriptAndGenerateSummary()
+        // Get all transcript segments in correct order
+        val allSegments = withContext(Dispatchers.IO) { transcriptDao.getAllOrdered() }
 
+        // Always format the transcript into 30s chunks/paragraphs
+        val rawTranscriptWithTimestamps = buildString {
+            if (allSegments.isEmpty()) {
+                append("No transcript available yet.")
+            } else {
+                for (seg in allSegments) {
+                    append("[${formatTime(seg.startTime)} - ${formatTime(seg.endTime)}]: ")
+                    append(seg.text.trim())
+                    append("\n\n")
+                }
+            }
+        }
+
+        // Check if online and prepare the final transcript for display
+        val isOnline =
+            com.example.twinmind_interview_app.network.NetworkUtils.isInternetAvailable(this@AudioRecActivity)
+        var displayTranscript: String
+        if (isOnline) {
+            try {
+                val enhanced = aiEnhanceTranscript(rawTranscriptWithTimestamps)
+                aiEnhancedTranscript = enhanced
+                displayTranscript = "\n\n$enhanced"
+            } catch (e: Exception) {
+                aiEnhancedTranscript = rawTranscriptWithTimestamps
+                displayTranscript = "\n\n$rawTranscriptWithTimestamps"
+            }
+        } else {
+            aiEnhancedTranscript = rawTranscriptWithTimestamps
+            displayTranscript = "\n\n$rawTranscriptWithTimestamps"
+        }
+
+        aiEnhancedTranscript = displayTranscript
+        withContext(Dispatchers.Main) {
+            // Only update views that are currently visible in the layout!
+            when (currentTab) {
+                2 -> {
+                    val transcriptTextView =
+                        binding.tabContentContainer.findViewById<TextView>(R.id.tvTranscriptFull)
+                    transcriptTextView?.text =
+                        displayTranscript.ifBlank { "Press stop to see the transcript." }
+                }
+
+                1 -> {
+                    val summaryCard =
+                        binding.tabContentContainer.findViewById<TextView>(R.id.summaryTextView)
+                    if (summaryCard != null) {
+                        val markwon = Markwon.create(this@AudioRecActivity)
+                        markwon.setMarkdown(
+                            summaryCard,
+                            viewModel.summary.value ?: "Transcript too short to generate a summary"
+                        )
+                    }
+                }
+            }
+
+            viewModel.forceRefreshSummary(transcriptDao, API_KEY)
+            // Switch to transcript tab if requested!
+            if (showTranscriptTab) {
+                selectTab(2)
+            }
+        }
     }
 
 
-    // Use this in place of the old saveCurrentSegment()
+    suspend fun aiEnhanceTranscript(rawText: String): String {
+        val prompt = """
+            This transcript was created by a meeting assistant app with the following features:
+            - Users start transcription at the beginning of meetings via a simple interface.
+            - The app captures continuous audio from the device microphone.
+            - Speech is transcribed into 30-second blocks, each labeled with its time range.
+            - The app is offline-first: it saves audio/text segments on device, handles network drops, and syncs when back online.
+            - No segment should be lost, missing, or reordered.
+            Your task:
+            1. Polish and enhance each 30-second block individually: Add punctuation, correct grammar, and improve readability, but do not combine or split the blocks and do not change their order.
+            2. Keep the original time range label before each block.
+            3. Do not remove, merge, or re-interpret content—only clarify, fix grammar, and ensure it reads naturally.
+            4. Enhance the transcript to make it more meaningful and understandable.
+            Here is the raw transcript data:
+            $rawText
+        """.trimIndent()
+        return viewModel.enhanceTranscriptWithGemini(prompt, API_KEY)
+    }
+
+    // --- Save 30-second segment ---
     suspend fun saveCurrentSegmentSync() {
         val text = currentSegmentText.trim()
         if (text.isNotEmpty()) {
@@ -376,7 +375,7 @@ class AudioRecActivity : AppCompatActivity() {
                 secondsElapsed++
                 // Every 30 seconds, save the segment
                 if ((secondsElapsed - segmentStartTime) >= 30) {
-                    saveCurrentSegment()
+                    saveCurrentSegment(force = true)
                     segmentStartTime = secondsElapsed
                     currentSegmentText = ""
                 }
@@ -436,10 +435,10 @@ class AudioRecActivity : AppCompatActivity() {
         speechRecognizer = null
     }
 
-    // --- Room: Save 30s segment ---
-    private fun saveCurrentSegment() {
+    // Room: Save 30s segment
+    private fun saveCurrentSegment(force: Boolean = false) {
         val text = currentSegmentText.trim()
-        if (text.isNotEmpty()) {
+        if (text.isNotEmpty() || force) {
             val segment = TranscriptSegmentEntity(
                 text = text,
                 startTime = segmentStartTime,
@@ -467,33 +466,29 @@ class AudioRecActivity : AppCompatActivity() {
 
     private fun setupClickListeners() {
         binding.backBtn.setOnClickListener {
+            val transcriptTextView =
+                binding.tabContentContainer.findViewById<TextView>(R.id.tvTranscriptFull)
+            transcriptTextView?.text = ""  // Clear the text
             navigation.navigateToAnotherActivity(this, UserHomeActivity::class.java)
             finish()
         }
         binding.shareBtn.setOnClickListener { /* share */ }
-        //binding.editNotesFab.setOnClickListener { }
-        binding.btnTranscript.setOnClickListener { }
         binding.btnstop.setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {
-                stopRecordingAndRefresh()
+                insertDemoTranscript()
+                stopRecordingAndRefresh(showTranscriptTab = true)
+
             }
-
-
         }
     }
-
-
 
     private fun selectTab(position: Int) {
         if (currentTab == position) return
         currentTab = position
         updateTabAppearance()
         showTabContent(position)
-        // This ensures FAB visibility is always correct even if showTabContent is changed later.
-       // binding.editNotesFab.visibility = if (position == 1) View.VISIBLE else View.GONE
         updateTranscriptAllUIs()
     }
-
 
     private fun updateTabAppearance() {
         resetTabAppearance(binding.tabQuestions)
@@ -527,37 +522,141 @@ class AudioRecActivity : AppCompatActivity() {
         val view = layoutInflater.inflate(layoutId, binding.tabContentContainer, false)
         binding.tabContentContainer.removeAllViews()
         binding.tabContentContainer.addView(view)
-      //  binding.editNotesFab.visibility = if (position == 1) View.VISIBLE else View.GONE
 
-        if (position == 1) {
+        if (position == 1) { // Notes tab
             val summaryCard = view.findViewById<TextView>(R.id.summaryTextView)
+            val refreshBtn = view.findViewById<ImageView>(R.id.refreshSummaryBtn)
+
+            // Remove old observers before adding new one!
+            viewModel.summary.removeObservers(this)
             viewModel.summary.observe(this) { summary ->
                 val markwon = Markwon.create(this)
-                markwon.setMarkdown(summaryCard, summary ?: "Transcript too short to generate a summary")
+                markwon.setMarkdown(
+                    summaryCard,
+                    summary ?: "Transcript too short to generate a summary"
+                )
             }
 
-        val refreshBtn = view.findViewById<ImageView>(R.id.refreshSummaryBtn) // set this ID in your XML
             refreshBtn.setOnClickListener {
-                viewModel.generateSummary(transcriptDao, API_KEY)
+                viewModel.forceRefreshSummary(transcriptDao, API_KEY)
             }
 
-        } else if (position == 2) {
-            val rv =
-                view.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvTranscriptSegments)
-            transcriptAdapter = TranscriptAdapter(listOf())
-            rv.adapter = transcriptAdapter
-            rv.layoutManager = LinearLayoutManager(this)
-            loadTranscriptSegments()
+            // If summary is already available, display it instantly
+            viewModel.summary.value?.let { summary ->
+                val markwon = Markwon.create(this)
+                markwon.setMarkdown(
+                    summaryCard,
+                    summary ?: "Transcript too short to generate a summary"
+                )
+            }
+        } else if (position == 2) { // TRANSCRIPT TAB
+            val transcriptTextView = view.findViewById<TextView>(R.id.tvTranscriptFull)
+            transcriptTextView?.text =
+                aiEnhancedTranscript.ifBlank { "Press stop to see the transcript." }
         }
     }
 
-    private fun loadTranscriptSegments() {
-        CoroutineScope(Dispatchers.IO).launch {
-            val segments = transcriptDao.getAll().reversed()
-            withContext(Dispatchers.Main) {
-                transcriptAdapter?.setItems(segments)
+
+    // --- CHAT BOTTOM SHEET ---
+    private fun showTranscriptBottomSheet() {
+        val bottomSheetDialog = BottomSheetDialog(this, R.style.BottomSheetDialogTheme)
+        val view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_transcript, null)
+        bottomSheetDialog.setContentView(view)
+        val bottomSheet =
+            bottomSheetDialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+        bottomSheet?.layoutParams?.height = ViewGroup.LayoutParams.MATCH_PARENT
+
+        // Header/status views
+        val chatInputBlock = view.findViewById<View>(R.id.chatInputBlock)
+        val aiStatusDot = view.findViewById<View>(R.id.aiStatusDot)
+        val bottomSheetTranscriptText = view.findViewById<TextView>(R.id.bottomSheetTranscriptText)
+
+        // Close button
+        val closeBtn = view.findViewById<ImageView>(R.id.closeBtn)
+        closeBtn.setOnClickListener { bottomSheetDialog.dismiss() }
+
+        // Transcript word count logic
+        val wordCount = getTranscriptWordCount()
+        if (wordCount < 50) {
+            // Show error message and red dot
+            chatInputBlock.visibility = View.GONE
+            bottomSheetTranscriptText?.setText(R.string.trascript_shortmsg)
+            aiStatusDot?.backgroundTintList =
+                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.red))
+            //  chatContainer?.visibility = View.GONE
+
+        } else {
+            // Normal chat UI, green dot
+            aiStatusDot?.backgroundTintList =
+                ColorStateList.valueOf(ContextCompat.getColor(this, R.color.green))
+            // chatContainer?.visibility = View.VISIBLE
+            bottomSheetTranscriptText?.setText(R.string.you_can_ask_questions_and_get_answers_from_the_transcript)
+        }
+
+        // Chat UI setup (can be outside the if/else, it's hidden when chatContainer is GONE)
+        val rvChat = view.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvChat)
+        val etMessage = view.findViewById<EditText>(R.id.etMessage)
+        val btnSend = view.findViewById<CardView>(R.id.btnSend)
+
+        if (API_KEY.isBlank()) {
+            Toast.makeText(this, "Gemini API key not configured", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val markwon = Markwon.create(this)
+        val chatAdapter = ChatAdapter(mutableListOf(), markwon)
+        rvChat.layoutManager = LinearLayoutManager(this).apply {
+            stackFromEnd = true
+            reverseLayout = false
+        }
+        rvChat.adapter = chatAdapter
+
+        viewModel.messages.observe(this) { messages ->
+            chatAdapter.updateMessages(messages)
+            if (messages.isNotEmpty()) {
+                rvChat.scrollToPosition(chatAdapter.itemCount - 1)
+            }
+            val isThinking = messages.any { it.message == "Thinking..." && !it.isUser }
+            btnSend.isEnabled = !isThinking
+            btnSend.alpha = if (isThinking) 0.5f else 1.0f
+        }
+
+        btnSend.setOnClickListener {
+            val userMsg = etMessage.text.toString().trim()
+            if (userMsg.isNotEmpty() && btnSend.isEnabled) {
+                viewModel.sendMessage(userMsg, transcriptDao, API_KEY)
+                etMessage.text.clear()
+                val imm =
+                    getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.hideSoftInputFromWindow(etMessage.windowToken, 0)
+            } else if (userMsg.isEmpty()) {
+                Toast.makeText(this, "Please enter a message", Toast.LENGTH_SHORT).show()
             }
         }
+
+        etMessage.setOnEditorActionListener { _, actionId, event ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND ||
+                (event?.keyCode == android.view.KeyEvent.KEYCODE_ENTER && event.action == android.view.KeyEvent.ACTION_DOWN)
+            ) {
+                btnSend.performClick()
+                true
+            } else {
+                false
+            }
+        }
+
+        // Welcome message if empty
+        if (viewModel.messages.value.isNullOrEmpty()) {
+            val welcomeMessages = listOf(
+                ChatMessage(
+                    "Hello! I'm here to help you with questions about your transcript.",
+                    false
+                )
+            )
+            viewModel._messages.value = welcomeMessages
+        }
+
+        bottomSheetDialog.show()
     }
 
     private fun updateTranscriptAllUIs() {
@@ -565,64 +664,36 @@ class AudioRecActivity : AppCompatActivity() {
             binding.tabContentContainer.findViewById<TextView>(R.id.tv_recording_time)
         if (currentTab == 2) {
             transcriptTimeView?.text = if (isRecording) getCurrentTimerText() else transcriptTime
-            loadTranscriptSegments()
-        }
-    }
-
-
-    private fun insertDemoTranscriptAndGenerateSummary() {
-        CoroutineScope(Dispatchers.IO).launch {
-           // transcriptDao.deleteAll() // optional, cleans previous runs
-            val demoText = """
-    Today’s meeting covered the new product launch timeline. John said we should finish the prototype by Friday. Sarah agreed and suggested we test with five users before launch. We also decided on a blue color scheme. The marketing team will prepare the announcement next week. No major issues were found in the last sprint. We set the next meeting for Monday morning. Everyone agreed to send updates by Sunday evening.
-
-    The session began with a brief overview of last week’s accomplishments. John highlighted that the initial design phase went smoothly and all team members contributed effectively. Sarah shared feedback from the design review, noting a few areas that could be improved but overall expressing satisfaction with the team’s work.
-
-    Emily from the development team presented her update, stating that all main features have been implemented in the current prototype. However, she mentioned a few bugs still needed to be fixed, particularly in the login module and the new dashboard layout. Michael agreed and offered to help Emily resolve those issues over the next two days.
-
-    The discussion moved to testing. Sarah recommended we start user testing with at least five participants to gather meaningful feedback. John emphasized the importance of a diverse group of testers to ensure the product works for different user types. Emily agreed, mentioning that she would coordinate with the testing team to schedule these sessions by Thursday.
-
-    Next, the team talked about branding. After some debate, everyone agreed on a blue color scheme as it aligns with the company's image. Michael suggested adding a secondary accent color for call-to-action buttons, which was supported by the group.
-
-    For marketing, Karen outlined a strategy for the product announcement. She will draft the press release and social media posts, aiming to complete them by next Wednesday. John asked everyone to review the marketing materials and provide feedback as soon as possible.
-
-    The team discussed documentation and internal training for customer support. Sarah volunteered to update the product manual, while Michael said he would create short training videos for support staff.
-
-    During the open floor, Emily asked if the product should include a feedback form on the dashboard. John thought it was a great idea and asked her to design a simple feedback interface before the next meeting.
-
-    Before wrapping up, everyone shared their action items: John will oversee prototype completion, Emily and Michael will fix bugs, Sarah will handle testing and documentation, and Karen will lead marketing efforts. The next meeting was scheduled for Monday morning at 10 a.m., and all members were reminded to send status updates by Sunday evening.
-
-    In summary, the team made significant progress this week, addressing design and development tasks while planning the upcoming product launch and announcement. The collaborative spirit and clear division of tasks helped ensure all areas are covered.
-
-    Additional details were discussed after the main meeting. The development team reviewed the codebase for any security vulnerabilities, agreeing to run automated security scans on Friday. Sarah proposed holding a short retrospective after launch to identify what went well and what could be improved for future projects.
-
-    John confirmed the budget for user testing and ensured all resources were available. Emily shared an updated project timeline, confirming that all deliverables were on track. The team concluded the meeting by expressing gratitude for everyone’s hard work and commitment.
-
-    The meeting minutes were documented and shared with all participants immediately after the call. Karen followed up by distributing the latest marketing assets, and Sarah sent an invitation for next week’s retrospective.
-
-    By the end of the day, all assigned tasks were tracked in the project management tool, and a summary email was sent to stakeholders. This meeting set the stage for a successful product launch and demonstrated the team’s ability to collaborate efficiently.
-""".trimIndent()
-
-
-            transcriptDao.insert(
-                TranscriptSegmentEntity(
-                    text = demoText,
-                    startTime = 0,
-                    endTime = 120,
-                    synced = false
-                )
-            )
-            withContext(Dispatchers.Main) {
-                viewModel.generateSummary(transcriptDao, API_KEY)
-                selectTab(1)
-            }
         }
     }
 
     override fun onBackPressed() {
+        val transcriptTextView =
+            binding.tabContentContainer.findViewById<TextView>(R.id.tvTranscriptFull)
+        transcriptTextView?.text = ""  // Clear the text
+
         super.onBackPressed()
         navigation.navigateToAnotherActivity(this, UserHomeActivity::class.java)
         finish()
+    }
+
+    fun insertDemoTranscript() {
+        CoroutineScope(Dispatchers.IO).launch {
+            // Example from CS50 Harvard - "This is CS50, Harvard University's introduction to the intellectual enterprises of computer science and the art of programming."
+            val demoText =
+                "Absolutely! Here is an extended version of that iconic CS50 introduction, now with at least 200 words, maintaining the spirit and educational vibe of the course:\n" +
+                        "This is CS50, Harvard University's introduction to the intellectual enterprises of computer science and the art of programming. Today, we’ll explore problem solving, abstraction, and algorithms. Throughout this course, you’ll learn not just how to write code, but how to think methodically and solve complex problems efficiently, regardless of the language or technology involved. Computer science is fundamentally about breaking down large, complicated challenges into smaller, manageable steps—a process known as problem decomposition.\n" +
+                        "We begin by learning to represent data in different ways, whether as numbers, text, images, or even sounds. We’ll discuss how computers use binary, and how this foundation supports higher-level concepts like data structures—arrays, lists, stacks, and queues—that help organize information in memory. You’ll discover the importance of abstraction, which lets us manage complexity by focusing on high-level structures and ignoring unnecessary details.\n" +
+                        "Algorithms are step-by-step procedures for solving problems. We’ll introduce classics like searching, sorting, and recursion, examining their trade-offs in terms of speed and memory. You’ll experiment with languages such as C, Python, and JavaScript, gaining hands-on experience building your own programs.\n" +
+                        "CS50 emphasizes collaboration, community, and learning by doing. No prior background is required; curiosity and perseverance are your best assets. By the end of the course, you’ll have not only learned how computers work but also developed the mindset and tools to tackle any problem, technical or otherwise. Welcome to the journey—this is CS50.\n"
+            val segment = TranscriptSegmentEntity(
+                text = demoText,
+                startTime = 0,
+                endTime = 30,
+                synced = false
+            )
+            transcriptDao.insert(segment)
+        }
     }
 
 }

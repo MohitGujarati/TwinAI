@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/bottomSheetContainer"
     app:cardCornerRadius="@dimen/dimen_28dp"
-    app:cardBackgroundColor="@color/Cuswhite"
     app:cardElevation="@dimen/dimen_16dp"
     android:outlineSpotShadowColor="#33000000"
     android:outlineAmbientShadowColor="#1A000000"
@@ -19,7 +17,7 @@
         style="@style/CardView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@drawable/premium_background_gradient"
+        android:background="@drawable/gradient_surface_bg"
         android:orientation="vertical"
         android:padding="@dimen/dimen_10dp">
 
@@ -33,7 +31,7 @@
             <!-- Premium Close Button -->
             <androidx.cardview.widget.CardView
                 android:layout_width="@dimen/dimen_40dp"
-                android:layout_height="match_parent"
+                android:layout_height="@dimen/dimen_40dp"
                 android:foreground="?attr/selectableItemBackgroundBorderless"
                 android:outlineAmbientShadowColor="@color/white"
                 android:outlineSpotShadowColor="@color/white"
@@ -53,30 +51,82 @@
             </androidx.cardview.widget.CardView>
         </LinearLayout>
 
-        <!-- Enhanced Transcript Text -->
-        <TextView
-            android:id="@+id/bottomSheetTranscript"
+        <!-- Enhanced AI Chat Header with Logo -->
+        <LinearLayout
+            android:id="@+id/bottomSheetHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/dimen_16dp"
-            android:hint="@string/you_can_ask_questions_and_get_answers_from_the_transcript"
             android:background="@drawable/transcriptchat_bg"
+            android:layout_marginTop="@dimen/dimen_16dp"
             android:padding="@dimen/dimen_16dp"
-            android:textSize="@dimen/dimen_18sp"
-            android:fontFamily="sans-serif-medium"
-            android:letterSpacing="0.01"
-            android:lineSpacingExtra="2dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:elevation="2dp">
+
+            <!-- Gemini AI Logo -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="@dimen/dimen_40dp"
+                android:layout_height="@dimen/dimen_40dp"
+                app:cardCornerRadius="@dimen/dimen_36dp"
+                app:cardElevation="@dimen/dimen_10dp"
+                android:background="@color/accent_blue"
+                android:outlineSpotShadowColor="@color/accent_blue"
+                android:outlineAmbientShadowColor="@color/accent_blue"
+                app:cardBackgroundColor="@color/white"
+                android:layout_marginEnd="@dimen/dimen_12dp">
+
+                <ImageView
+                    android:id="@+id/geminiLogo"
+                    android:layout_width="@dimen/dimen_32dp"
+                    android:layout_height="@dimen/dimen_32dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_brain"
+                    android:contentDescription="Gemini AI Logo"
+                    android:scaleType="centerInside" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- AI Chat Title and Description -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/bottomSheetTranscriptText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/dimen_4dp"
+                    android:text="@string/you_can_ask_questions_and_get_answers_from_the_transcript"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/dimen_14sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="0.01"
+                    android:lineSpacingExtra="2dp"
+                    android:alpha="0.9" />
+
+            </LinearLayout>
+
+            <!-- AI Status Indicator Dot -->
+            <View
+                android:id="@+id/aiStatusDot"
+                android:layout_width="@dimen/dimen_8dp"
+                android:layout_height="@dimen/dimen_8dp"
+                android:layout_marginStart="@dimen/dimen_8dp"
+                android:background="@drawable/recording_dot"
+                android:backgroundTint="@color/green"
+                android:alpha="0.8" />
+        </LinearLayout>
+
 
         <!-- Enhanced RecyclerView with Premium Styling -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvChat"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-
             android:layout_weight="1"
             android:layout_marginTop="@dimen/dimen_16dp"
             android:padding="@dimen/dimen_8dp"
-
             android:clipToPadding="false"
             android:overScrollMode="never"
             android:scrollbars="none"
@@ -86,11 +136,11 @@
         <!-- Premium Chat Input Area -->
         <LinearLayout
             android:id="@+id/chatInputBlock"
+            android:background="@drawable/transcriptchat_bg"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:padding="@dimen/dimen_12dp"
-            android:background="@drawable/transcriptchat_bg"
             android:layout_marginTop="@dimen/dimen_8dp"
             android:gravity="center_vertical"
             android:elevation="2dp">
@@ -100,6 +150,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:elevation="@dimen/dimen_32dp"
                 app:cardCornerRadius="@dimen/dimen_24dp"
                 app:cardElevation="0dp"
                 app:cardBackgroundColor="@android:color/transparent">
@@ -120,8 +171,9 @@
                     android:imeOptions="actionSend" />
             </androidx.cardview.widget.CardView>
 
-            <!-- Premium Send Button -->
+            <!-- Premium Send Button with AI Theme -->
             <androidx.cardview.widget.CardView
+                android:id="@+id/btnSend"
                 android:layout_width="@dimen/dimen_48dp"
                 android:layout_height="@dimen/dimen_48dp"
                 android:layout_marginStart="@dimen/dimen_12dp"
@@ -129,11 +181,11 @@
                 app:cardElevation="6dp"
                 android:outlineAmbientShadowColor="@color/white"
                 android:outlineSpotShadowColor="@color/white"
-                app:cardBackgroundColor="#4285F4"
+                app:cardBackgroundColor="@color/accent_blue"
                 android:foreground="?attr/selectableItemBackgroundBorderless">
 
                 <ImageView
-                    android:id="@+id/btnSend"
+
                     android:layout_width="@dimen/dimen_24dp"
                     android:layout_height="@dimen/dimen_24dp"
                     android:layout_gravity="center"
