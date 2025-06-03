@@ -475,7 +475,7 @@ class AudioRecActivity : AppCompatActivity() {
         binding.shareBtn.setOnClickListener { /* share */ }
         binding.btnstop.setOnClickListener {
             CoroutineScope(Dispatchers.Main).launch {
-                insertDemoTranscript()
+                //insertDemoTranscript()
                 stopRecordingAndRefresh(showTranscriptTab = true)
 
             }
@@ -677,23 +677,23 @@ class AudioRecActivity : AppCompatActivity() {
         finish()
     }
 
-    fun insertDemoTranscript() {
-        CoroutineScope(Dispatchers.IO).launch {
-            // Example from CS50 Harvard - "This is CS50, Harvard University's introduction to the intellectual enterprises of computer science and the art of programming."
-            val demoText =
-                "Absolutely! Here is an extended version of that iconic CS50 introduction, now with at least 200 words, maintaining the spirit and educational vibe of the course:\n" +
-                        "This is CS50, Harvard University's introduction to the intellectual enterprises of computer science and the art of programming. Today, we’ll explore problem solving, abstraction, and algorithms. Throughout this course, you’ll learn not just how to write code, but how to think methodically and solve complex problems efficiently, regardless of the language or technology involved. Computer science is fundamentally about breaking down large, complicated challenges into smaller, manageable steps—a process known as problem decomposition.\n" +
-                        "We begin by learning to represent data in different ways, whether as numbers, text, images, or even sounds. We’ll discuss how computers use binary, and how this foundation supports higher-level concepts like data structures—arrays, lists, stacks, and queues—that help organize information in memory. You’ll discover the importance of abstraction, which lets us manage complexity by focusing on high-level structures and ignoring unnecessary details.\n" +
-                        "Algorithms are step-by-step procedures for solving problems. We’ll introduce classics like searching, sorting, and recursion, examining their trade-offs in terms of speed and memory. You’ll experiment with languages such as C, Python, and JavaScript, gaining hands-on experience building your own programs.\n" +
-                        "CS50 emphasizes collaboration, community, and learning by doing. No prior background is required; curiosity and perseverance are your best assets. By the end of the course, you’ll have not only learned how computers work but also developed the mindset and tools to tackle any problem, technical or otherwise. Welcome to the journey—this is CS50.\n"
-            val segment = TranscriptSegmentEntity(
-                text = demoText,
-                startTime = 0,
-                endTime = 30,
-                synced = false
-            )
-            transcriptDao.insert(segment)
-        }
-    }
+//    fun insertDemoTranscript() {
+//        CoroutineScope(Dispatchers.IO).launch {
+//            // Example from CS50 Harvard - "This is CS50, Harvard University's introduction to the intellectual enterprises of computer science and the art of programming."
+//            val demoText =
+//                "Absolutely! Here is an extended version of that iconic CS50 introduction, now with at least 200 words, maintaining the spirit and educational vibe of the course:\n" +
+//                        "This is CS50, Harvard University's introduction to the intellectual enterprises of computer science and the art of programming. Today, we’ll explore problem solving, abstraction, and algorithms. Throughout this course, you’ll learn not just how to write code, but how to think methodically and solve complex problems efficiently, regardless of the language or technology involved. Computer science is fundamentally about breaking down large, complicated challenges into smaller, manageable steps—a process known as problem decomposition.\n" +
+//                        "We begin by learning to represent data in different ways, whether as numbers, text, images, or even sounds. We’ll discuss how computers use binary, and how this foundation supports higher-level concepts like data structures—arrays, lists, stacks, and queues—that help organize information in memory. You’ll discover the importance of abstraction, which lets us manage complexity by focusing on high-level structures and ignoring unnecessary details.\n" +
+//                        "Algorithms are step-by-step procedures for solving problems. We’ll introduce classics like searching, sorting, and recursion, examining their trade-offs in terms of speed and memory. You’ll experiment with languages such as C, Python, and JavaScript, gaining hands-on experience building your own programs.\n" +
+//                        "CS50 emphasizes collaboration, community, and learning by doing. No prior background is required; curiosity and perseverance are your best assets. By the end of the course, you’ll have not only learned how computers work but also developed the mindset and tools to tackle any problem, technical or otherwise. Welcome to the journey—this is CS50.\n"
+//            val segment = TranscriptSegmentEntity(
+//                text = demoText,
+//                startTime = 0,
+//                endTime = 30,
+//                synced = false
+//            )
+//            transcriptDao.insert(segment)
+//        }
+//    }
 
 }
