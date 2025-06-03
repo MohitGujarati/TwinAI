@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@drawable/twinmindlogo" />
-    <foreground android:drawable="@drawable/twinmindlogo" />
-    <monochrome android:drawable="@drawable/twinmindlogo" />
+    <background android:drawable="@drawable/ic_appicon" />
+    <foreground android:drawable="@drawable/ic_appicon" />
+    <monochrome android:drawable="@drawable/ic_appicon" />
 </adaptive-icon>

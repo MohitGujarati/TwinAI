@@ -13,7 +13,7 @@
         android:layout_marginStart="@dimen/dimen_12dp"
         android:layout_marginBottom="@dimen/dimen_8dp"
         android:fontFamily="sans-serif-condensed-medium"
-        android:text="Mon, May 12"
+        android:text="Mon, June 2"
         android:textColor="@color/text_secondary"
         android:textSize="@dimen/dimen_16sp" />
 
