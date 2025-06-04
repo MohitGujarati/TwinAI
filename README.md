@@ -3,6 +3,7 @@
 **TwinMind AI** is a smart AI assistant for meetings and interviews, built for Android in Kotlin.
 It **transcribes conversations in real-time**, generates **summaries using Gemini AI**, and lets you save, organize, and revisit key moments—all with an offline-first, privacy-friendly approach.
 
+The app is currently in the development phase. Please contact the developer for more information.
 ---
 
 ## 🎬 Screenshots
