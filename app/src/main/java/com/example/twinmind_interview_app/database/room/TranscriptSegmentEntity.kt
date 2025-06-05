@@ -1,4 +1,4 @@
-package com.example.twinmind_interview_app.model
+package com.example.twinmind_interview_app.database.room
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

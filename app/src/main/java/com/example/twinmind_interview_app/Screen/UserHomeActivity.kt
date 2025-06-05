@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -14,27 +13,18 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.twinmind_interview_app.Adapter.UserHomePagerAdapter
 import com.example.twinmind_interview_app.BuildConfig
+import com.example.twinmind_interview_app.R
 import com.example.twinmind_interview_app.Utils.navigateHandlers
-import com.example.twinmind_interview_app.adapter.MemoryTranscriptAdapter
 import com.example.twinmind_interview_app.databinding.ActivityUserHomeBinding
-import com.example.twinmind_interview_app.model.CalendarEvent
-import com.example.twinmind_interview_app.network.GoogleCalendarService
-import com.example.twinmind_interview_app.network.RetrofitBuilder
-import com.example.twinmind_interview_app.repository.TranscriptDatabase
-import com.example.twinmind_interview_app.repository.TranscriptSegmentDao
 import com.example.twinmind_interview_app.viewmodel.UserHomeViewModel
 import com.google.android.gms.auth.GoogleAuthUtil
 import com.google.android.gms.auth.api.signin.*
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.api.Scope
-import com.google.android.material.tabs.TabLayout
-import io.opencensus.stats.View
-import kotlinx.coroutines.*
-import java.time.Instant
-import java.time.format.DateTimeFormatter
+import com.google.android.material.tabs.TabLayoutMediator
 
 class UserHomeActivity : AppCompatActivity() {
 
@@ -43,10 +33,6 @@ class UserHomeActivity : AppCompatActivity() {
     private val viewModel: UserHomeViewModel by viewModels()
     private var accessToken: String? = null
     val clientId = BuildConfig.CLIENT_ID
-
-    private lateinit var memoryAdapter: MemoryTranscriptAdapter
-    private lateinit var transcriptDao: TranscriptSegmentDao
-
 
     private val CALENDAR_SCOPES = listOf(
         Scope("https://www.googleapis.com/auth/calendar.readonly"),
@@ -61,96 +47,46 @@ class UserHomeActivity : AppCompatActivity() {
         setContentView(binding.root)
         navigation = navigateHandlers()
 
-        setupMemoriesRecycler()
-        //loadMemoriesFromRoom()
-        setupClickListeners()
-        setupTabListener()
-        setupObservers()
-        checkCalendarPermission()
+        // Set up ViewPager2 and Tabs
+        val pagerAdapter = UserHomePagerAdapter(this)
+        binding.viewPager.adapter = pagerAdapter
 
-        transcriptDao = TranscriptDatabase.getDatabase(applicationContext).transcriptDao()
+        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            tab.text = when (position) {
+                0 -> getString(R.string.memories)
+                1 -> getString(R.string.calendar)
+                2 -> getString(R.string.questions)
+                else -> ""
+            }
+        }.attach()
 
-
-
-        val clientId = BuildConfig.CLIENT_ID
-        Log.d("ClientIDKey", "Client ID: $clientId")
-
-
-      //  binding.tvCalendarEvents.visibility = View.GONE
-
+        // Profile section navigation
         binding.ivProfile.setOnClickListener {
             navigation.navigateMsgToAnotherActivity(
                 this, "RecodingStart", "true", ProfileSectionaActivity::class.java
             )
         }
 
+        // "Capture" button navigation
         binding.btnCapture.setOnClickListener {
             checkPermissionsAndNavigate()
         }
-    }
 
-
-    private fun setupMemoriesRecycler() {
-        memoryAdapter = MemoryTranscriptAdapter(listOf())
-        binding.rvMemories.layoutManager = LinearLayoutManager(this)
-        binding.rvMemories.adapter = memoryAdapter
-    }
-    private fun loadMemoriesFromRoom() {
-        CoroutineScope(Dispatchers.IO).launch {
-            val memories = transcriptDao.getAll()
-            withContext(Dispatchers.Main) {
-                memoryAdapter.setItems(memories)
-                binding.rvMemories.visibility = android.view.View.VISIBLE
-                binding.tvCalendarEvents.visibility = android.view.View.GONE
-            }
-        }
-    }
-
-    private fun setupObservers() {
-        viewModel.calendarEvents.observe(this) { events ->
-            displayEvents(events)
-        }
-        viewModel.loading.observe(this) { isLoading ->
-            if (isLoading) {
-                binding.tvCalendarEvents.text = "Loading events..."
-               // binding.tvCalendarEvents.visibility = View.VISIBLE
-            }
-        }
-        viewModel.error.observe(this) { errorMsg ->
-            errorMsg?.let {
-                binding.tvCalendarEvents.text = "Error: $it"
-                //binding.tvCalendarEvents.visibility = View.VISIBLE
-            }
-        }
-    }
-
-    private fun setupTabListener() {
-        binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            @RequiresApi(Build.VERSION_CODES.O)
-            override fun onTabSelected(tab: TabLayout.Tab?) {
-                when (tab?.position) {
-                    0 -> {
-                        loadMemoriesFromRoom()
-                        binding.tvCalendarEvents.visibility = android.view.View.GONE
-                    }
-                    1 -> {
-                        binding.tvCalendarEvents.visibility = android.view.View.VISIBLE
-                        ensureCalendarAccess()
-                    }
-                    else -> binding.tvCalendarEvents.visibility = android.view.View.GONE
-                }
-            }
-            override fun onTabUnselected(tab: TabLayout.Tab?) {}
-            override fun onTabReselected(tab: TabLayout.Tab?) {}
-        })
-    }
-    private fun setupClickListeners() {
+        // Search button
         binding.btnSearch.setOnClickListener {
             Toast.makeText(this, "Search coming soon!", Toast.LENGTH_SHORT).show()
         }
+
+        // Calendar permission
+        checkCalendarPermission()
     }
 
-    // ----- Permission Handling for Audio -----
+    // Provide token to fragments
+    fun getGoogleCalendarToken(): String? {
+        return accessToken
+    }
+
+    // ---- Permission Handling for Audio ----
     private fun checkPermissionsAndNavigate() {
         if (ContextCompat.checkSelfPermission(
                 this, Manifest.permission.RECORD_AUDIO
@@ -185,7 +121,8 @@ class UserHomeActivity : AppCompatActivity() {
         )
         finish()
     }
-    // ----- Calendar Permissions and Google Sign-In -----
+
+    // ---- Calendar Permissions and Google Sign-In ----
     @RequiresApi(Build.VERSION_CODES.O)
     private fun checkCalendarPermission() {
         if (ContextCompat.checkSelfPermission(
@@ -258,44 +195,38 @@ class UserHomeActivity : AppCompatActivity() {
                 fetchCalendarEvents()
             }
             .addOnFailureListener {
-                binding.tvCalendarEvents.text = "Sign-in failed: ${it.message}"
-                binding.tvCalendarEvents.visibility = android.view.View.VISIBLE
+                Toast.makeText(this, "Sign-in failed: ${it.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun fetchCalendarEvents() {
-        CoroutineScope(Dispatchers.IO).launch {
+        // This is where you get the accessToken for REST API (store it for Fragments)
+        // You should use this token in your CalendarFragment via getGoogleCalendarToken()
+        // Here's an example how to get token:
+        if (googleSignInAccount == null) return
+        Thread {
             try {
-                // Get access token for REST API
-                val accessToken = googleSignInAccount?.account?.let {
+                val token = googleSignInAccount!!.account?.let {
                     GoogleAuthUtil.getToken(
-                        this@UserHomeActivity,
+                        this,
                         it,
                         "oauth2:https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events.readonly"
                     )
                 }
-                val retrofit = accessToken?.let { RetrofitBuilder.getCalendarRetrofit(it) }
-                val service = retrofit?.create(GoogleCalendarService::class.java)
-                val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now())
-                val eventsResponse = service?.getEvents(timeMin = now)
-                val calendarEvents = eventsResponse?.items
-
-                withContext(Dispatchers.Main) {
-                    if (calendarEvents != null) {
-                        displayEvents(calendarEvents)
-                    }
+                // Store token for fragments to use:
+                runOnUiThread {
+                    accessToken = token
                 }
             } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    binding.tvCalendarEvents.text = "Error: ${e.localizedMessage}"
-                    binding.tvCalendarEvents.visibility = android.view.View.VISIBLE
+                runOnUiThread {
+                    Toast.makeText(this, "Token error: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                 }
             }
-        }
+        }.start()
     }
 
-    // ----- Utility: Check Play Services & Network -----
+    // ---- Utility: Check Play Services & Network ----
     private fun isGooglePlayServicesAvailable(): Boolean {
         val status = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this)
         return status == ConnectionResult.SUCCESS
@@ -304,16 +235,5 @@ class UserHomeActivity : AppCompatActivity() {
         val connMgr = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkInfo = connMgr.activeNetworkInfo
         return (networkInfo != null && networkInfo.isConnected)
-    }
-
-    // ----- Display Events -----
-    private fun displayEvents(events: List<CalendarEvent>) {
-        if (events.isEmpty()) {
-            binding.tvCalendarEvents.text = "No events found."
-        } else {
-            binding.tvCalendarEvents.text =
-                events.joinToString("\n\n") { "📅 ${it.summary}\n⏰ ${it.start?.dateTime ?: it.start?.date}" }
-        }
-        binding.tvCalendarEvents.visibility = android.view.View.VISIBLE
     }
 }

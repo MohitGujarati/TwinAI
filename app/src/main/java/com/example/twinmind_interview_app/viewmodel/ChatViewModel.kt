@@ -5,13 +5,12 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
-import com.example.twinmind_interview_app.R
 import com.example.twinmind_interview_app.model.ChatMessage
 import com.example.twinmind_interview_app.model.GeminiContent
 import com.example.twinmind_interview_app.model.GeminiPart
 import com.example.twinmind_interview_app.model.GeminiRequest
 import com.example.twinmind_interview_app.network.GeminiApiClient
-import com.example.twinmind_interview_app.repository.TranscriptSegmentDao
+import com.example.twinmind_interview_app.database.room.TranscriptSegmentDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -24,6 +23,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _summary = MutableLiveData<String?>()
     val summary: LiveData<String?> = _summary
+    val aiEnhancedTranscript = MutableLiveData<String>()
+
+    val liveTranscript = MutableLiveData<String>()
+
 
 
     fun sendMessage(userMsg: String, transcriptDao: TranscriptSegmentDao, apiKey: String) {
@@ -149,8 +152,6 @@ This is your task no need to say to user -> here you will have data of user save
         }
     }
 
-
-
     // In ChatViewModel.kt
     suspend fun enhanceTranscriptWithGemini(prompt: String, apiKey: String): String {
         return try {
@@ -187,41 +188,58 @@ This is your task no need to say to user -> here you will have data of user save
         viewModelScope.launch {
             _summary.value = "Generating summary..."
 
-                val transcriptSegments = withContext(Dispatchers.IO) {
-                    transcriptDao.getAll()
-                }
-                val transcriptText = transcriptSegments.joinToString(" ") { it.text }
+            val transcriptSegments = withContext(Dispatchers.IO) {
+                transcriptDao.getAll()
+            }
+            val transcriptText = transcriptSegments.joinToString(" ") { it.text }
 
-                if (transcriptText.split("\\s+".toRegex()).size < 150) {
-                    _summary.value = "Transcript too short to generate a summary"
-                    return@launch
-                }
+            if (transcriptText.split("\\s+".toRegex()).size < 150) {
+                _summary.value = "Transcript too short to generate a summary"
+                return@launch
+            }
 
-                val systemPrompt = """
-                Summarize the following meeting transcript in a clear, simple way that a 10-year-old could understand. Highlight any key points or decisions.
-                --- Transcript Start ---
-                $transcriptText
-                --- Transcript End ---
+            val systemPrompt = """
+                        Summarize the following transcript in a **professional, respectful, and point-wise** manner. 
+                        - Use only polite and decent language.
+                        - Never use slang, informal, disrespectful, or silly words.
+                        - Keep the summary clear, simple, and easy to understand.
+                        - Highlight all important points or decisions using bullet points or numbered lists.
+                        - Ensure the summary is always suitable for a workplace or academic setting.
+
+            --- Transcript Start ---
+            $transcriptText
+            --- Transcript End ---
             """.trimIndent()
 
-                val request = GeminiRequest(
-                    contents = listOf(
-                        GeminiContent(
-                            parts = listOf(GeminiPart(systemPrompt))
-                        )
+
+            val request = GeminiRequest(
+                contents = listOf(
+                    GeminiContent(
+                        parts = listOf(GeminiPart(systemPrompt))
                     )
                 )
+            )
 
-                try {
-                    val response = GeminiApiClient.service.generateContent(apiKey, request)
-                    val summaryText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
+            try {
+                val response = GeminiApiClient.service.generateContent(apiKey, request)
+                val summaryText =
+                    response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
                         ?: "No summary could be generated."
-                    _summary.value = summaryText
-                } catch (e: Exception) {
-                    _summary.value = "Error generating summary: ${e.localizedMessage}"
-                }
+                _summary.value = summaryText
+            } catch (e: Exception) {
+                _summary.value = "Error generating summary: ${e.localizedMessage}"
             }
         }
+    }
+
+    //Transcript fragment
+    fun setAiEnhancedTranscript(text: String) {
+        aiEnhancedTranscript.value = text
+    }
+
+    fun setLiveTranscript(text: String) {
+        liveTranscript.value = text
+    }
 
 
 }

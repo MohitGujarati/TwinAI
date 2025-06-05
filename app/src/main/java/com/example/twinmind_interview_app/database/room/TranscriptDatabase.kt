@@ -1,11 +1,10 @@
-package com.example.twinmind_interview_app.repository
+package com.example.twinmind_interview_app.database.room
 
 // TranscriptDatabase.kt
 import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.twinmind_interview_app.model.TranscriptSegmentEntity
 
 @Database(entities = [TranscriptSegmentEntity::class], version = 1)
 abstract class TranscriptDatabase : RoomDatabase() {

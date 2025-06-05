@@ -6,7 +6,7 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.twinmind_interview_app.R
-import com.example.twinmind_interview_app.model.TranscriptSegmentEntity
+import com.example.twinmind_interview_app.database.room.TranscriptSegmentEntity
 
 class TranscriptAdapter(private var items: List<TranscriptSegmentEntity>) :
     RecyclerView.Adapter<TranscriptAdapter.ViewHolder>() {

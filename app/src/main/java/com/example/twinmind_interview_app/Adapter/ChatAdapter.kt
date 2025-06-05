@@ -1,4 +1,4 @@
-package com.example.twinmind_interview_app.adapter
+package com.example.twinmind_interview_app.Adapter
 
 import android.view.LayoutInflater
 import android.view.View
@@ -34,7 +34,6 @@ class ChatAdapter(
             BotViewHolder(view, markwon)
         }
     }
-
 
     override fun getItemCount(): Int = messages.size
 
@@ -77,14 +76,16 @@ class ChatAdapter(
 
 
     // --- ViewHolder classes ---
-    class UserViewHolder(itemView: View, private val markwon: Markwon) : RecyclerView.ViewHolder(itemView) {
+    class UserViewHolder(itemView: View, private val markwon: Markwon) :
+        RecyclerView.ViewHolder(itemView) {
         private val textView: TextView = itemView.findViewById(R.id.tvMessageUser)
         fun bind(msg: String) {
             markwon.setMarkdown(textView, msg)
         }
     }
 
-    class BotViewHolder(itemView: View, private val markwon: Markwon) : RecyclerView.ViewHolder(itemView) {
+    class BotViewHolder(itemView: View, private val markwon: Markwon) :
+        RecyclerView.ViewHolder(itemView) {
         private val textView: TextView = itemView.findViewById(R.id.tvMessageBot)
         fun bind(msg: String) {
             markwon.setMarkdown(textView, msg)

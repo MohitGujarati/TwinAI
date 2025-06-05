@@ -1,8 +1,7 @@
-package com.example.twinmind_interview_app.repository
+package com.example.twinmind_interview_app.database.room
 
 // TranscriptSegmentDao.kt
 import androidx.room.*
-import com.example.twinmind_interview_app.model.TranscriptSegmentEntity
 
 @Dao
 interface TranscriptSegmentDao {

@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+
+            <!-- Main content -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:backgroundTint="@color/Cuswhite"
+                android:orientation="vertical"
+                android:padding="@dimen/dimen_20dp">
+
+                <!-- Summary Card -->
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/dimen_16dp"
+                    android:outlineAmbientShadowColor="@color/white"
+                    android:outlineSpotShadowColor="@color/white"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="@dimen/dimen_12dp"
+                    app:cardElevation="@dimen/dimen_2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="@dimen/dimen_20dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="Summary"
+                                android:textColor="@color/text_primary"
+                                android:textSize="@dimen/dimen_18sp" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/dimen_4dp"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="Transcript too short to generate a summary"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="@dimen/dimen_14sp"
+                                android:visibility="gone" />
+                        </LinearLayout>
+
+                        <ImageView
+                            android:id="@+id/refreshSummaryBtn"
+                            android:layout_width="@dimen/dimen_40dp"
+                            android:layout_height="@dimen/dimen_40dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:padding="@dimen/dimen_4dp"
+                            android:src="@drawable/ic_refresh"
+                            app:tint="@color/text_secondary" />
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+
+                <!-- Your Notes Card -->
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:outlineAmbientShadowColor="@color/white"
+                    android:outlineSpotShadowColor="@color/white"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="@dimen/dimen_12dp"
+                    app:cardElevation="@dimen/dimen_2dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical">
+
+                        <!-- Header -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:padding="@dimen/dimen_20dp"
+                            android:paddingBottom="@dimen/dimen_12dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:fontFamily="sans-serif-medium"
+                                android:text="Your Notes"
+                                android:textColor="@color/text_primary"
+                                android:textSize="@dimen/dimen_18sp" />
+
+                            <TextView
+                                android:id="@+id/editNotesBtn"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="?attr/selectableItemBackground"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:fontFamily="sans-serif-medium"
+                                android:padding="@dimen/dimen_8dp"
+                                android:text="Edit Notes"
+                                android:textColor="@color/accent_blue"
+                                android:textSize="@dimen/dimen_14sp" />
+                        </LinearLayout>
+
+                        <!-- Content Area -->
+                        <ScrollView
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_weight="1"
+                            android:fillViewport="true">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical"
+                                android:paddingHorizontal="@dimen/dimen_20dp"
+                                android:paddingBottom="@dimen/dimen_20dp">
+
+                                <TextView
+                                    android:id="@+id/summaryTextView"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:fontFamily="sans-serif-medium"
+                                    android:fontStyle="italic"
+                                    android:lineSpacingExtra="@dimen/dimen_4dp"
+                                    android:text="Click 'Edit Notes' to add your own notes or provide instructions to regenerate summary (e.g. correct spellings to fix transcription errors)"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="@dimen/dimen_14sp" />
+
+                                <!-- Placeholder for user notes -->
+                                <EditText
+                                    android:id="@+id/notesEditText"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="200dp"
+                                    android:layout_marginTop="@dimen/dimen_16dp"
+                                    android:fontFamily="sans-serif-condensed-medium"
+                                    android:gravity="top|start"
+                                    android:hint="Start typing your notes..."
+                                    android:inputType="textMultiLine|textCapSentences"
+                                    android:padding="@dimen/dimen_16dp"
+                                    android:scrollbars="vertical"
+                                    android:textColor="@color/text_primary"
+                                    android:textColorHint="@color/text_tertiary"
+                                    android:textSize="@dimen/dimen_14sp"
+                                    android:visibility="gone" />
+                            </LinearLayout>
+                        </ScrollView>
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+            </LinearLayout>
+
+            <!-- Floating Action Button -->
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:id="@+id/editNotesFab"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|end"
+                android:layout_marginRight="@dimen/dimen_36dp"
+                android:layout_marginBottom="@dimen/dimen_80dp"
+                android:contentDescription="@string/edit_notes"
+                android:src="@drawable/ic_edit"
+                android:visibility="gone"
+                app:backgroundTint="@color/white"
+                app:borderWidth="0dp"
+                app:elevation="@dimen/dimen_8dp"
+                app:tint="@color/accent_blue" />
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>
