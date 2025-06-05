@@ -30,6 +30,7 @@
 
             <!-- Premium Close Button -->
             <androidx.cardview.widget.CardView
+                android:id="@+id/btnClose"
                 android:layout_width="@dimen/dimen_40dp"
                 android:layout_height="@dimen/dimen_40dp"
                 android:foreground="?attr/selectableItemBackgroundBorderless"

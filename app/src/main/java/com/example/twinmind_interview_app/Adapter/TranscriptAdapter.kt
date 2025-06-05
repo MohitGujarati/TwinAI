@@ -6,9 +6,9 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.twinmind_interview_app.R
-import com.example.twinmind_interview_app.database.room.TranscriptSegmentEntity
+import com.example.twinmind_interview_app.database.NewRoomdb.NewTranscriptSegmentEntity
 
-class TranscriptAdapter(private var items: List<TranscriptSegmentEntity>) :
+class TranscriptAdapter(private var items: List<NewTranscriptSegmentEntity>) :
     RecyclerView.Adapter<TranscriptAdapter.ViewHolder>() {
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -34,7 +34,7 @@ class TranscriptAdapter(private var items: List<TranscriptSegmentEntity>) :
         holder.text.text = seg.text
     }
 
-    fun setItems(newItems: List<TranscriptSegmentEntity>) {
+    fun setItems(newItems: List<NewTranscriptSegmentEntity>) {
         items = newItems
         notifyDataSetChanged()
     }

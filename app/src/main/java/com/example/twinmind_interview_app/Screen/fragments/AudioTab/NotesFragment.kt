@@ -38,10 +38,15 @@ class NotesFragment : Fragment() {
         }
 
         refreshBtn.setOnClickListener {
-            (activity as? AudioRecActivity)?.let {
-                it.viewModel.forceRefreshSummary(it.transcriptDao, it.API_KEY)
+            (activity as? AudioRecActivity)?.let { act ->
+                act.viewModel.forceRefreshSummary(
+                    act.newTranscriptDao,
+                    act.API_KEY,
+                    act.currentSessionId
+                )
             }
         }
+
 
         return view
     }

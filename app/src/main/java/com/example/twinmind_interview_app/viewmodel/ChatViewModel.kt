@@ -10,7 +10,7 @@ import com.example.twinmind_interview_app.model.GeminiContent
 import com.example.twinmind_interview_app.model.GeminiPart
 import com.example.twinmind_interview_app.model.GeminiRequest
 import com.example.twinmind_interview_app.network.GeminiApiClient
-import com.example.twinmind_interview_app.database.room.TranscriptSegmentDao
+import com.example.twinmind_interview_app.database.NewRoomdb.NewTranscriptSegmentDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -24,12 +24,17 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val _summary = MutableLiveData<String?>()
     val summary: LiveData<String?> = _summary
     val aiEnhancedTranscript = MutableLiveData<String>()
-
     val liveTranscript = MutableLiveData<String>()
 
+    // ==== CHANGES START HERE ====
 
-
-    fun sendMessage(userMsg: String, transcriptDao: TranscriptSegmentDao, apiKey: String) {
+    // Now takes NewTranscriptSegmentDao and sessionId as params!
+    fun sendMessage(
+        userMsg: String,
+        transcriptDao: NewTranscriptSegmentDao,
+        apiKey: String,
+        sessionId: Long
+    ) {
         if (userMsg.isBlank() || apiKey.isBlank()) {
             _messages.value =
                 _messages.value.orEmpty() + ChatMessage("API key or message missing!", false)
@@ -42,11 +47,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _messages.value = _messages.value.orEmpty() + ChatMessage("Thinking...", false)
 
-            // 1. Get transcript data from Room
+            // 1. Get transcript data ONLY for the current session
             val transcriptSegments = withContext(Dispatchers.IO) {
                 try {
-                    // You can change getAll() to get recent, or filter, as you like
-                    transcriptDao.getAll()
+                    transcriptDao.getSegmentsForSession(sessionId)
                 } catch (e: Exception) {
                     emptyList()
                 }
@@ -105,7 +109,6 @@ When referencing TwinMind, understand it as a comprehensive productivity tool th
 
 This is your task no need to say to user -> here you will have data of user saved information. He will ask you questions on that and you have to answer them accordingly in a way that a normal 10-year-old child can understand.
 
-""
 """.trimIndent()
                 )
                 // Add transcript context
@@ -152,7 +155,6 @@ This is your task no need to say to user -> here you will have data of user save
         }
     }
 
-    // In ChatViewModel.kt
     suspend fun enhanceTranscriptWithGemini(prompt: String, apiKey: String): String {
         return try {
             val request = GeminiRequest(
@@ -178,18 +180,19 @@ This is your task no need to say to user -> here you will have data of user save
         }
     }
 
-    fun forceRefreshSummary(transcriptDao: TranscriptSegmentDao, apiKey: String) {
+    // Now takes sessionId param
+    fun forceRefreshSummary(transcriptDao: NewTranscriptSegmentDao, apiKey: String, sessionId: Long) {
         _summary.value = null
-        generateSummary(transcriptDao, apiKey)
+        generateSummary(transcriptDao, apiKey, sessionId)
     }
 
-    // In ChatViewModel.kt
-    fun generateSummary(transcriptDao: TranscriptSegmentDao, apiKey: String) {
+    // Now takes sessionId param
+    fun generateSummary(transcriptDao: NewTranscriptSegmentDao, apiKey: String, sessionId: Long) {
         viewModelScope.launch {
             _summary.value = "Generating summary..."
 
             val transcriptSegments = withContext(Dispatchers.IO) {
-                transcriptDao.getAll()
+                transcriptDao.getSegmentsForSession(sessionId)
             }
             val transcriptText = transcriptSegments.joinToString(" ") { it.text }
 
@@ -199,18 +202,17 @@ This is your task no need to say to user -> here you will have data of user save
             }
 
             val systemPrompt = """
-                        Summarize the following transcript in a **professional, respectful, and point-wise** manner. 
-                        - Use only polite and decent language.
-                        - Never use slang, informal, disrespectful, or silly words.
-                        - Keep the summary clear, simple, and easy to understand.
-                        - Highlight all important points or decisions using bullet points or numbered lists.
-                        - Ensure the summary is always suitable for a workplace or academic setting.
+                Summarize the following transcript in a **professional, respectful, and point-wise** manner. 
+                - Use only polite and decent language.
+                - Never use slang, informal, disrespectful, or silly words.
+                - Keep the summary clear, simple, and easy to understand.
+                - Highlight all important points or decisions using bullet points or numbered lists.
+                - Ensure the summary is always suitable for a workplace or academic setting.
 
-            --- Transcript Start ---
-            $transcriptText
-            --- Transcript End ---
+                --- Transcript Start ---
+                $transcriptText
+                --- Transcript End ---
             """.trimIndent()
-
 
             val request = GeminiRequest(
                 contents = listOf(
@@ -240,8 +242,4 @@ This is your task no need to say to user -> here you will have data of user save
     fun setLiveTranscript(text: String) {
         liveTranscript.value = text
     }
-
-
 }
-
-

@@ -44,19 +44,10 @@
                 android:layout_marginEnd="@dimen/dimen_16dp">
 
                 <TextView
-                    android:id="@+id/meetingTimeHour"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="9:11 "
-                    android:textSize="@dimen/dimen_14sp"
-                    android:textColor="@color/text_secondary"
-                    android:fontFamily="sans-serif-condensed-medium" />
-
-                <TextView
                     android:id="@+id/meetingTimePeriod"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="PM"
+                    android:text="recording time "
                     android:textSize="@dimen/dimen_14sp"
                     android:textColor="@color/text_secondary"
                     android:fontFamily="sans-serif-condensed-medium" />

@@ -1,6 +1,8 @@
 package com.example.twinmind_interview_app.Screen
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.os.*
@@ -8,11 +10,13 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
-import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -21,6 +25,7 @@ import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.twinmind_interview_app.Adapter.AudioTabsPagerAdapter
 import com.example.twinmind_interview_app.BuildConfig
 import com.example.twinmind_interview_app.R
@@ -28,10 +33,13 @@ import com.example.twinmind_interview_app.Utils.navigateHandlers
 import com.example.twinmind_interview_app.Adapter.ChatAdapter
 import com.example.twinmind_interview_app.databinding.ActivityAudioRecordingBinding
 import com.example.twinmind_interview_app.model.ChatMessage
-import com.example.twinmind_interview_app.database.room.TranscriptSegmentEntity
-import com.example.twinmind_interview_app.database.room.TranscriptDatabase
-import com.example.twinmind_interview_app.database.room.TranscriptSegmentDao
 import com.example.twinmind_interview_app.viewmodel.ChatViewModel
+import com.example.twinmind_interview_app.database.NewRoomdb.NewTranscriptDatabase
+import com.example.twinmind_interview_app.database.NewRoomdb.NewTranscriptSegmentEntity
+import com.example.twinmind_interview_app.database.NewRoomdb.NewTranscriptSegmentDao
+import com.example.twinmind_interview_app.database.NewRoomdb.TranscriptSessionDao
+import com.example.twinmind_interview_app.database.NewRoomdb.TranscriptSessionEntity
+import com.example.twinmind_interview_app.network.NetworkUtils
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayoutMediator
 import io.noties.markwon.Markwon
@@ -44,7 +52,12 @@ class AudioRecActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityAudioRecordingBinding
     private lateinit var navigation: navigateHandlers
-    lateinit var transcriptDao: TranscriptSegmentDao
+
+    private lateinit var newDb: NewTranscriptDatabase
+    lateinit var newTranscriptDao: NewTranscriptSegmentDao
+    private lateinit var sessionDao: TranscriptSessionDao
+
+    var currentSessionId: Long = -1L  // Session ID for current recording
 
     private var speechRecognizer: SpeechRecognizer? = null
     var isRecording = false
@@ -72,7 +85,11 @@ class AudioRecActivity : AppCompatActivity() {
         binding = ActivityAudioRecordingBinding.inflate(layoutInflater)
         setContentView(binding.root)
         navigation = navigateHandlers()
-        transcriptDao = TranscriptDatabase.getDatabase(applicationContext).transcriptDao()
+
+        // ========== USE NEW DATABASE & DAOs ==========
+        newDb = NewTranscriptDatabase.getDatabase(applicationContext)
+        newTranscriptDao = newDb.segmentDao()
+        sessionDao = newDb.sessionDao()
 
         val pagerAdapter = AudioTabsPagerAdapter(this)
         binding.tabPager.adapter = pagerAdapter
@@ -88,14 +105,30 @@ class AudioRecActivity : AppCompatActivity() {
 
         setupClickListeners()
 
+        // --- CREATE NEW SESSION WHEN RECORDING STARTS ---
         if (checkAudioPermission()) {
             prepareSpeechRecognizer()
-            startRecording()
+            startNewSessionAndRecording()
         }
 
         binding.btnTranscript.setOnClickListener { showTranscriptBottomSheet() }
     }
 
+    // Start a new session and then recording
+    private fun startNewSessionAndRecording() {
+        CoroutineScope(Dispatchers.Main).launch {
+            // Create and insert a new session
+            withContext(Dispatchers.IO) {
+                val session = TranscriptSessionEntity(
+                    title = null,
+                    createdAt = System.currentTimeMillis()
+                )
+                currentSessionId = sessionDao.insertSession(session)
+
+            }
+            startRecording()
+        }
+    }
 
     //LifeCycle
     override fun onDestroy() {
@@ -105,7 +138,6 @@ class AudioRecActivity : AppCompatActivity() {
         speechRecognizer?.destroy()
         speechRecognizer = null
     }
-
 
     override fun onBackPressed() {
         super.onBackPressed()
@@ -131,12 +163,11 @@ class AudioRecActivity : AppCompatActivity() {
             grantResults[0] == PackageManager.PERMISSION_GRANTED
         ) {
             prepareSpeechRecognizer()
-            startRecording()
+            startNewSessionAndRecording()
         } else {
             Toast.makeText(this, "Microphone permission denied", Toast.LENGTH_SHORT).show()
         }
     }
-
 
     //UI set up
     private fun setupClickListeners() {
@@ -152,9 +183,7 @@ class AudioRecActivity : AppCompatActivity() {
         }
     }
 
-
     //Recording Control (main entrypoints)
-    // start recording
     private fun startRecording() {
         isRecording = true
         continueListening = true
@@ -195,8 +224,10 @@ class AudioRecActivity : AppCompatActivity() {
             saveCurrentSegmentSync()
         }.join()
 
-        // Get all transcript segments in correct order
-        val allSegments = withContext(Dispatchers.IO) { transcriptDao.getAllOrdered() }
+        // Get all transcript segments for THIS session in correct order
+        val allSegments = withContext(Dispatchers.IO) {
+            newTranscriptDao.getSegmentsForSession(currentSessionId)
+        }
         Log.d("TranscriptDebug", "All loaded segments: $allSegments")
 
         // Format transcript
@@ -212,10 +243,9 @@ class AudioRecActivity : AppCompatActivity() {
             }
         }
 
-
         // Check if online and prepare the final transcript for display
         val isOnline =
-            com.example.twinmind_interview_app.network.NetworkUtils.isInternetAvailable(this@AudioRecActivity)
+            NetworkUtils.isInternetAvailable(this@AudioRecActivity)
         var displayTranscript: String
         if (isOnline) {
             try {
@@ -236,13 +266,12 @@ class AudioRecActivity : AppCompatActivity() {
         viewModel.setAiEnhancedTranscript(displayTranscript)
 
         withContext(Dispatchers.Main) {
-            viewModel.forceRefreshSummary(transcriptDao, API_KEY)
-            // If you want to auto-switch tabs:
-            // if (showTranscriptTab) selectTab(2)
+            viewModel.forceRefreshSummary(newTranscriptDao, API_KEY, currentSessionId)
         }
     }
 
     // --- CHAT BOTTOM SHEET ---
+    @SuppressLint("MissingInflatedId")
     private fun showTranscriptBottomSheet() {
         val bottomSheetDialog = BottomSheetDialog(this, R.style.BottomSheetDialogTheme)
         val view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_transcript, null)
@@ -256,32 +285,24 @@ class AudioRecActivity : AppCompatActivity() {
         val aiStatusDot = view.findViewById<View>(R.id.aiStatusDot)
         val bottomSheetTranscriptText = view.findViewById<TextView>(R.id.bottomSheetTranscriptText)
 
-        // Close button
-        val closeBtn = view.findViewById<ImageView>(R.id.closeBtn)
-        closeBtn.setOnClickListener { bottomSheetDialog.dismiss() }
-
         // Transcript word count logic
         val wordCount = getTranscriptWordCount()
         if (wordCount < 50) {
-            // Show error message and red dot
             chatInputBlock.visibility = View.GONE
             bottomSheetTranscriptText?.setText(R.string.trascript_shortmsg)
             aiStatusDot?.backgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(this, R.color.red))
-            //  chatContainer?.visibility = View.GONE
-
         } else {
-            // Normal chat UI, green dot
             aiStatusDot?.backgroundTintList =
                 ColorStateList.valueOf(ContextCompat.getColor(this, R.color.green))
-            // chatContainer?.visibility = View.VISIBLE
             bottomSheetTranscriptText?.setText(R.string.you_can_ask_questions_and_get_answers_from_the_transcript)
         }
 
-        // Chat UI setup (can be outside the if/else, it's hidden when chatContainer is GONE)
-        val rvChat = view.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvChat)
+        // Chat UI setup
+        val rvChat = view.findViewById<RecyclerView>(R.id.rvChat)
         val etMessage = view.findViewById<EditText>(R.id.etMessage)
         val btnSend = view.findViewById<CardView>(R.id.btnSend)
+        val btnclose=view.findViewById<CardView>(R.id.btnClose)
 
         if (API_KEY.isBlank()) {
             Toast.makeText(this, "Gemini API key not configured", Toast.LENGTH_LONG).show()
@@ -309,10 +330,10 @@ class AudioRecActivity : AppCompatActivity() {
         btnSend.setOnClickListener {
             val userMsg = etMessage.text.toString().trim()
             if (userMsg.isNotEmpty() && btnSend.isEnabled) {
-                viewModel.sendMessage(userMsg, transcriptDao, API_KEY)
+                viewModel.sendMessage(userMsg, newTranscriptDao, API_KEY, currentSessionId)
                 etMessage.text.clear()
                 val imm =
-                    getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                    getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.hideSoftInputFromWindow(etMessage.windowToken, 0)
             } else if (userMsg.isEmpty()) {
                 Toast.makeText(this, "Please enter a message", Toast.LENGTH_SHORT).show()
@@ -320,8 +341,8 @@ class AudioRecActivity : AppCompatActivity() {
         }
 
         etMessage.setOnEditorActionListener { _, actionId, event ->
-            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND ||
-                (event?.keyCode == android.view.KeyEvent.KEYCODE_ENTER && event.action == android.view.KeyEvent.ACTION_DOWN)
+            if (actionId == EditorInfo.IME_ACTION_SEND ||
+                (event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)
             ) {
                 btnSend.performClick()
                 true
@@ -341,9 +362,12 @@ class AudioRecActivity : AppCompatActivity() {
             viewModel._messages.value = welcomeMessages
         }
 
+        btnclose.setOnClickListener {
+            bottomSheetDialog.dismiss()
+        }
+
         bottomSheetDialog.show()
     }
-
 
     //Speech Recognition
 
@@ -351,54 +375,39 @@ class AudioRecActivity : AppCompatActivity() {
         if (speechRecognizer == null) {
             speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
             speechRecognizer?.setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) {
-                    Log.d("TranscriptDebug", "Ready for speech")
-                }
-
-                override fun onBeginningOfSpeech() {
-                    Log.d("TranscriptDebug", "Speech beginning")
-                }
-
+                override fun onReadyForSpeech(params: Bundle?) {}
+                override fun onBeginningOfSpeech() {}
                 override fun onRmsChanged(rmsdB: Float) {}
                 override fun onBufferReceived(buffer: ByteArray?) {}
-                override fun onEndOfSpeech() {
-                    Log.d("TranscriptDebug", "Speech ended")
-                }
-
+                override fun onEndOfSpeech() {}
                 override fun onError(error: Int) {
-                    Log.d("TranscriptDebug", "SpeechRecognizer error: $error")
                     if (continueListening && isRecording) {
                         restartSpeechToTextWithDelay()
                     }
                 }
-
                 override fun onResults(results: Bundle) {
                     val matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     if (!matches.isNullOrEmpty()) {
-                        Log.d("TranscriptDebug", "onResults: ${matches[0]}")
                         onSpeechResult(matches[0])
                     }
                     if (continueListening && isRecording) {
                         restartSpeechToTextWithDelay()
                     }
                 }
-
                 override fun onPartialResults(partialResults: Bundle) {
                     val matches =
                         partialResults.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     if (!matches.isNullOrEmpty()) {
-                        Log.d("TranscriptDebug", "onPartialResults: ${matches[0]}")
                         onSpeechResult(matches[0])
                     }
                 }
-
                 override fun onEvent(eventType: Int, params: Bundle?) {}
             })
         }
     }
 
     private fun startSpeechToText() {
-        val intent = android.content.Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(
                 RecognizerIntent.EXTRA_LANGUAGE_MODEL,
                 RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
@@ -422,21 +431,12 @@ class AudioRecActivity : AppCompatActivity() {
         }, 100)
     }
 
-
     private fun onSpeechResult(text: String) {
         transcriptText = appendIfNew(transcriptText, text)
         currentSegmentText = appendIfNew(currentSegmentText, text)
-
-        // Send live transcript to ViewModel for the fragment to observe
         viewModel.setLiveTranscript(transcriptText)
-
-        Log.d(
-            "TranscriptDebug",
-            "Transcript updated: $transcriptText | Current Segment: $currentSegmentText"
-        )
         updateTranscriptAllUIs()
     }
-
 
     private fun appendIfNew(existing: String, newText: String): String {
         return if (existing.isEmpty() || !existing.endsWith(newText)) {
@@ -445,7 +445,6 @@ class AudioRecActivity : AppCompatActivity() {
             existing
         }
     }
-
 
     // Timer Logic
 
@@ -470,7 +469,6 @@ class AudioRecActivity : AppCompatActivity() {
                 updateTimerText()
                 updateTranscriptAllUIs()
             }
-
             override fun onFinish() {}
         }.start()
     }
@@ -485,7 +483,6 @@ class AudioRecActivity : AppCompatActivity() {
         binding.tvRecordingTime.text = getCurrentTimerText()
     }
 
-
     //Transcript Management
     private fun saveCurrentSegment(force: Boolean = false) {
         val text = currentSegmentText.trim()
@@ -496,18 +493,18 @@ class AudioRecActivity : AppCompatActivity() {
         }
     }
 
-    //--- KEY CHANGE: Save segment on STOP or timer!
+    //--- KEY CHANGE: Save segment with currentSessionId!
     suspend fun saveCurrentSegmentSync() {
         val text = currentSegmentText.trim()
-        if (text.isNotEmpty()) {
-            val segment = TranscriptSegmentEntity(
+        if (text.isNotEmpty() && currentSessionId != -1L) {
+            val segment = NewTranscriptSegmentEntity(
+                sessionId = currentSessionId,
                 text = text,
                 startTime = segmentStartTime,
-                endTime = secondsElapsed,
-                synced = false
+                endTime = secondsElapsed
             )
             Log.d("TranscriptDebug", "Saving segment: $segment")
-            transcriptDao.insert(segment)
+            newTranscriptDao.insertSegment(segment)
         }
     }
 
@@ -520,10 +517,8 @@ class AudioRecActivity : AppCompatActivity() {
     }
 
     private fun getTranscriptWordCount(): Int {
-        // Get the latest transcript from LiveData, or fallback to current string
         val transcript =
             viewModel.aiEnhancedTranscript.value?.ifBlank { transcriptText } ?: transcriptText
-        // Count words (splitting on any whitespace)
         return transcript.trim().split("\\s+".toRegex()).filter { it.isNotEmpty() }.size
     }
 
@@ -533,8 +528,6 @@ class AudioRecActivity : AppCompatActivity() {
             .joinToString(" ")
     }
 
-
-    //Title Generation
     private fun generateTitleIfNeeded() {
         if (titleGenerated) return
         titleGenerated = true
@@ -544,7 +537,7 @@ class AudioRecActivity : AppCompatActivity() {
             return
         }
         val isOnline =
-            com.example.twinmind_interview_app.network.NetworkUtils.isInternetAvailable(this)
+            NetworkUtils.isInternetAvailable(this)
         if (isOnline) {
             CoroutineScope(Dispatchers.Main).launch {
                 val title = try {
@@ -576,9 +569,6 @@ class AudioRecActivity : AppCompatActivity() {
         }.trim().replace("\n", "")
     }
 
-
-    //Transcript Formating and Enhancement
-
     private fun formatTime(seconds: Int): String {
         val min = seconds / 60
         val sec = seconds % 60
@@ -603,6 +593,4 @@ class AudioRecActivity : AppCompatActivity() {
         """.trimIndent()
         return viewModel.enhanceTranscriptWithGemini(prompt, API_KEY)
     }
-
-
 }

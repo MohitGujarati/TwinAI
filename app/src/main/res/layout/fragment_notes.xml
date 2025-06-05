@@ -90,6 +90,7 @@
                     app:cardElevation="@dimen/dimen_2dp">
 
                     <LinearLayout
+                        android:minHeight="@dimen/dimen_280dp"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:orientation="vertical">
