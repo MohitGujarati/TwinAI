@@ -1,3 +1,13 @@
+
+> ## 🚫 Usage Policy
+> This project and its code are for demonstration and academic submission only.  
+> **Do NOT copy, use, or reproduce any part of this codebase without explicit written permission from the author.**
+>
+> To request permission, contact: [mohitgujarati.dev@email.com](mailto:mohitgujarati.dev@email.com)
+> OR
+> To request permission, contact: [mohitgujarati11@email.com](mailto:mohitgujarati11@email.com)
+
+
 ## ✨ Overview
 
 **TwinMind AI** is a smart AI assistant for meetings and interviews, built for Android in Kotlin.
@@ -74,19 +84,6 @@ cd TwinAI
 * **Android SpeechRecognizer / MediaRecorder**
 * **Material Design 3**
 * **MVVM Architecture**
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-
-1. Fork the repo
-2. Create your branch (`git checkout -b feature/your-feature`)
-3. Commit changes
-4. Push and open a Pull Request
-
-**Open to feedback and collaboration!**
 
 ---
 
