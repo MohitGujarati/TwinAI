@@ -5,6 +5,8 @@ import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
+import android.location.Geocoder
+import android.location.Location
 import android.os.*
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -40,10 +42,14 @@ import com.example.twinmind_interview_app.database.NewRoomdb.NewTranscriptSegmen
 import com.example.twinmind_interview_app.database.NewRoomdb.TranscriptSessionDao
 import com.example.twinmind_interview_app.database.NewRoomdb.TranscriptSessionEntity
 import com.example.twinmind_interview_app.network.NetworkUtils
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.tabs.TabLayoutMediator
 import io.noties.markwon.Markwon
 import kotlinx.coroutines.*
+import java.io.IOException
+import java.text.SimpleDateFormat
 import java.util.*
 
 class AudioRecActivity : AppCompatActivity() {
@@ -80,6 +86,15 @@ class AudioRecActivity : AppCompatActivity() {
     // ViewModel
     val viewModel: ChatViewModel by viewModels()
 
+    //Location
+    // Location
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var geocoder: Geocoder
+
+    companion object {
+        private const val LOCATION_PERMISSION_REQUEST_CODE = 2
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAudioRecordingBinding.inflate(layoutInflater)
@@ -111,7 +126,95 @@ class AudioRecActivity : AppCompatActivity() {
             startNewSessionAndRecording()
         }
 
+
+        // Initialize location services
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+        geocoder = Geocoder(this, Locale.getDefault())
+        updateLocationAndTime()
         binding.btnTranscript.setOnClickListener { showTranscriptBottomSheet() }
+    }
+
+    // Update location and time
+    private fun updateLocationAndTime() {
+        // Update current date and time
+        val currentDate = SimpleDateFormat("MMM dd, yyyy • hh:mm a", Locale.getDefault()).format(Date())
+
+        // Check location permission and get location
+        if (checkLocationPermission()) {
+            getCurrentLocation { locationName ->
+                val locationText = "$currentDate • $locationName"
+                binding.tvUserLocation.text = locationText
+            }
+        } else {
+            // Request location permission
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                LOCATION_PERMISSION_REQUEST_CODE
+            )
+            // Just show date and time without location for now
+            binding.tvUserLocation.text = currentDate
+        }
+    }
+
+    // Check location permissions
+    private fun checkLocationPermission(): Boolean {
+        return (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED)
+    }
+
+    // Get current location
+    @SuppressLint("MissingPermission")
+    private fun getCurrentLocation(callback: (String) -> Unit) {
+        try {
+            fusedLocationClient.lastLocation
+                .addOnSuccessListener { location: Location? ->
+                    if (location != null) {
+                        getLocationName(location.latitude, location.longitude, callback)
+                    } else {
+                        callback("Location not available")
+                    }
+                }
+                .addOnFailureListener {
+                    callback("Location not available")
+                }
+        } catch (e: SecurityException) {
+            callback("Location not available")
+        }
+    }
+
+    // Get location name from coordinates
+    private fun getLocationName(latitude: Double, longitude: Double, callback: (String) -> Unit) {
+        try {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+                    val locationName = if (!addresses.isNullOrEmpty()) {
+                        val address = addresses[0]
+                        val city = address.locality ?: address.subAdminArea
+                        val state = address.adminArea
+                        when {
+                            city != null && state != null -> "$city, $state"
+                            city != null -> city
+                            state != null -> state
+                            else -> "Unknown location"
+                        }
+                    } else {
+                        "Unknown location"
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        callback(locationName)
+                    }
+                } catch (e: IOException) {
+                    withContext(Dispatchers.Main) {
+                        callback("Location not available")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            callback("Location not available")
+        }
     }
 
     // Start a new session and then recording
@@ -129,6 +232,7 @@ class AudioRecActivity : AppCompatActivity() {
             startRecording()
         }
     }
+
 
     //LifeCycle
     override fun onDestroy() {
@@ -209,6 +313,8 @@ class AudioRecActivity : AppCompatActivity() {
 
     //stop recording
     suspend fun stopRecordingAndRefresh(showTranscriptTab: Boolean = false) {
+        Log.d("TranscriptDebug", "STOP clicked. isRecording=$isRecording currentSegmentText='$currentSegmentText' sessionId=$currentSessionId")
+
         isRecording = false
         continueListening = false
         transcriptTime = getCurrentTimerText()
@@ -218,6 +324,7 @@ class AudioRecActivity : AppCompatActivity() {
         stopTimer()
         stopSpeechToText()
         viewModel.setLiveTranscript("") // Hide live transcript after stop
+        Log.d("TranscriptDebug", "STOP clicked. isRecording=$isRecording currentSegmentText='$currentSegmentText' sessionId=$currentSessionId")
 
         // Save the last segment if any (just in case the timer didn’t hit 30 seconds)
         CoroutineScope(Dispatchers.IO).launch {
@@ -269,6 +376,8 @@ class AudioRecActivity : AppCompatActivity() {
             viewModel.forceRefreshSummary(newTranscriptDao, API_KEY, currentSessionId)
         }
     }
+
+
 
     // --- CHAT BOTTOM SHEET ---
     @SuppressLint("MissingInflatedId")
@@ -434,6 +543,8 @@ class AudioRecActivity : AppCompatActivity() {
     private fun onSpeechResult(text: String) {
         transcriptText = appendIfNew(transcriptText, text)
         currentSegmentText = appendIfNew(currentSegmentText, text)
+        Log.d("TranscriptDebug", "onSpeechResult: text='$text' currentSegmentText='$currentSegmentText'")
+
         viewModel.setLiveTranscript(transcriptText)
         updateTranscriptAllUIs()
     }
@@ -480,7 +591,10 @@ class AudioRecActivity : AppCompatActivity() {
     }
 
     private fun updateTimerText() {
-        binding.tvRecordingTime.text = getCurrentTimerText()
+        val currentTime = getCurrentTimerText()
+        binding.tvRecordingTime.text = currentTime
+        // Update viewModel so transcript fragment can show timer
+        viewModel.setRecordingTime(currentTime)
     }
 
     //Transcript Management
@@ -497,6 +611,7 @@ class AudioRecActivity : AppCompatActivity() {
     suspend fun saveCurrentSegmentSync() {
         val text = currentSegmentText.trim()
         if (text.isNotEmpty() && currentSessionId != -1L) {
+            // If this is the last segment, segmentStartTime could be anywhere, but it's correct!
             val segment = NewTranscriptSegmentEntity(
                 sessionId = currentSessionId,
                 text = text,
@@ -505,8 +620,15 @@ class AudioRecActivity : AppCompatActivity() {
             )
             Log.d("TranscriptDebug", "Saving segment: $segment")
             newTranscriptDao.insertSegment(segment)
+            withContext(Dispatchers.Main) {
+                viewModel.loadSessionTranscript(newTranscriptDao, currentSessionId)
+            }
+        } else {
+            Log.d("TranscriptDebug", "Not saving segment: empty text or invalid sessionId.")
         }
     }
+
+
 
     private fun updateTranscriptAllUIs() {
         val transcriptTimeView =
@@ -557,9 +679,27 @@ class AudioRecActivity : AppCompatActivity() {
     }
 
     private fun setTitle(text: String) {
-        val tvTitle = findViewById<TextView>(R.id.tv_title)
+        val tvTitle = binding.tvTitle
         tvTitle?.text = text
+
+        // ADDED: Save title to database
+        if (currentSessionId != -1L) {
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val session = sessionDao.getSessionById(currentSessionId)
+                    session?.let {
+                        val updatedSession = it.copy(title = text)
+                        sessionDao.updateSession(updatedSession)
+                        Log.d("AudioRecActivity", "Title saved to database: $text")
+                    }
+                } catch (e: Exception) {
+                    Log.e("AudioRecActivity", "Failed to save title: ${e.message}")
+                }
+            }
+        }
     }
+
+
 
     private suspend fun generateGeminiTitle(text: String): String {
         val prompt =

@@ -20,6 +20,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     val _messages = MutableLiveData<List<ChatMessage>>(emptyList())
     val messages: LiveData<List<ChatMessage>> = _messages
+    val sessionTranscript: MutableLiveData<String> = MutableLiveData()
 
     private val _summary = MutableLiveData<String?>()
     val summary: LiveData<String?> = _summary
@@ -155,6 +156,9 @@ This is your task no need to say to user -> here you will have data of user save
         }
     }
 
+    val recordingTime = MutableLiveData<String>()
+
+
     suspend fun enhanceTranscriptWithGemini(prompt: String, apiKey: String): String {
         return try {
             val request = GeminiRequest(
@@ -242,4 +246,48 @@ This is your task no need to say to user -> here you will have data of user save
     fun setLiveTranscript(text: String) {
         liveTranscript.value = text
     }
+
+
+
+    fun refreshTranscript(segmentDao: NewTranscriptSegmentDao, sessionId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val segments = segmentDao.getSegmentsForSession(sessionId)
+            val formatted = buildString {
+                segments.forEach { segment ->
+                    append("[${formatTime(segment.startTime)} - ${formatTime(segment.endTime)}]: ")
+                    append(segment.text.trim())
+                    append("\n\n")
+                }
+            }
+            sessionTranscript.postValue(formatted)
+        }
+    }
+
+    private fun formatTime(seconds: Int): String {
+        val min = seconds / 60
+        val sec = seconds % 60
+        return String.format("%02d:%02d", min, sec)
+    }
+
+
+    fun loadSessionTranscript(segmentDao: NewTranscriptSegmentDao, sessionId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val segments = segmentDao.getSegmentsForSession(sessionId)
+            Log.d("TranscriptDebug", "Loaded segments count: ${segments.size}")
+            val fullTranscript = buildString {
+                segments.forEach { seg ->
+                    append("[${formatTime(seg.startTime)} - ${formatTime(seg.endTime)}]: ")
+                    append(seg.text.trim())
+                    append("\n\n")
+                }
+            }
+            sessionTranscript.postValue(fullTranscript)
+        }
+    }
+
+    fun setRecordingTime(time: String) {
+        recordingTime.value = time
+    }
+
+
 }

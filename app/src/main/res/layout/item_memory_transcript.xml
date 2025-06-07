@@ -1,94 +1,99 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical">
-
-    <!-- Date Header Outside Card -->
-    <TextView
-        android:id="@+id/meetingDate"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/dimen_12dp"
-        android:layout_marginBottom="@dimen/dimen_8dp"
-        android:fontFamily="sans-serif-condensed-medium"
-        android:text="Mon, June 2"
-        android:textColor="@color/text_secondary"
-        android:textSize="@dimen/dimen_16sp" />
-
-    <!-- Meeting Card -->
-    <androidx.cardview.widget.CardView
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="@dimen/dimen_12dp"
-        android:layout_marginTop="0dp"
-        app:cardCornerRadius="@dimen/dimen_12dp"
-        app:cardElevation="@dimen/dimen_2dp"
-        app:cardBackgroundColor="@color/white">
+        android:orientation="vertical">
 
-        <!-- Card Content -->
-        <LinearLayout
+        <!-- Date Header Outside Card -->
+        <TextView
+            android:id="@+id/meetingDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/dimen_12dp"
+            android:layout_marginBottom="@dimen/dimen_8dp"
+            android:fontFamily="sans-serif-condensed-medium"
+            android:text="Mon, June 2"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/dimen_16sp" />
+
+        <!-- Meeting Card -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:padding="@dimen/dimen_16dp"
-            android:gravity="center_vertical">
+            android:layout_margin="@dimen/dimen_12dp"
+            android:layout_marginTop="0dp"
+            app:cardCornerRadius="@dimen/dimen_12dp"
+            app:cardElevation="@dimen/dimen_2dp"
+            app:cardBackgroundColor="@color/white">
 
-            <!-- Time Container -->
+            <!-- Card Content -->
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:layout_marginEnd="@dimen/dimen_16dp">
+                android:orientation="horizontal"
+                android:padding="@dimen/dimen_16dp"
+                android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/meetingTimePeriod"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="recording time "
-                    android:textSize="@dimen/dimen_14sp"
-                    android:textColor="@color/text_secondary"
-                    android:fontFamily="sans-serif-condensed-medium" />
-
-            </LinearLayout>
-
-            <!-- Meeting Content -->
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-
-
-                <TextView
-                    android:id="@+id/meetingdescribtion"
+                <!-- Time Container -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/public_speaking_practice"
+                    android:orientation="vertical"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:layout_marginEnd="@dimen/dimen_16dp">
+
+                    <TextView
+                        android:id="@+id/meetingTimePeriod"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="recording time "
+                        android:textSize="@dimen/dimen_14sp"
+                        android:textColor="@color/text_secondary"
+                        android:fontFamily="sans-serif-condensed-medium" />
+
+                </LinearLayout>
+
+                <!-- Meeting Content -->
+                <LinearLayout
+                    android:layout_weight="1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+
+
+                    <TextView
+                        android:id="@+id/meetingdescribtion"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/recording"
+                        android:gravity="center"
+                        android:textSize="@dimen/dimen_14sp"
+                        android:textColor="@color/text_primary"
+                        android:maxLines="3"
+                        android:lines="3"
+                        android:textStyle="bold" />
+
+                </LinearLayout>
+
+                <!-- Duration -->
+                <TextView
+                    android:layout_weight="1"
+                    android:id="@+id/meetingTotalTime"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="1h 42m"
+                    android:gravity="center"
+                    android:padding="10dp"
                     android:textSize="@dimen/dimen_14sp"
-                    android:textColor="@color/text_primary"
-                    android:maxLines="3"
-                    android:lines="3"
-                    android:textStyle="bold" />
+                    android:textColor="@color/text_secondary"
+                    android:fontFamily="sans-serif-condensed-medium"
+                    android:layout_marginStart="@dimen/dimen_16dp" />
 
             </LinearLayout>
 
-            <!-- Duration -->
-            <TextView
-                android:id="@+id/meetingTotalTime"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="1h 42m"
-                android:textSize="@dimen/dimen_14sp"
-                android:textColor="@color/text_secondary"
-                android:fontFamily="sans-serif-condensed-medium"
-                android:layout_marginStart="@dimen/dimen_16dp" />
+        </androidx.cardview.widget.CardView>
 
-        </LinearLayout>
-
-    </androidx.cardview.widget.CardView>
-
-</LinearLayout>
+    </LinearLayout>

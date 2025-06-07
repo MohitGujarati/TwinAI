@@ -125,60 +125,54 @@
                     android:layout_marginTop="@dimen/dimen_8dp" />
             </LinearLayout>
 
-            <LinearLayout
-                android:orientation="vertical"
+            <!-- Tab Layout -->
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/tabLayout"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@color/background_primary">
+                android:layout_height="wrap_content"
+                app:tabGravity="fill"
+                app:tabMode="fixed"
+                app:tabSelectedTextColor="@color/accent_blue"
+                app:tabTextColor="@color/text_secondary"
+                app:tabIndicatorColor="@color/accent_blue"
+                app:tabIndicatorHeight="2dp"
+                android:background="@color/white">
 
-                <!-- Top Bar goes here if you have one -->
-
-                <com.google.android.material.tabs.TabLayout
-                    android:id="@+id/tabLayout"
-                    android:layout_width="match_parent"
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:tabGravity="fill"
-                    app:tabMode="fixed"
-                    app:tabSelectedTextColor="@color/accent_blue"
-                    app:tabTextColor="@color/text_secondary"
-                    app:tabIndicatorColor="@color/accent_blue"
-                    app:tabIndicatorHeight="2dp"
-                    android:background="@color/white">
-                    <com.google.android.material.tabs.TabItem
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/questions" />
+                    android:text="@string/questions" />
 
-                    <com.google.android.material.tabs.TabItem
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/notes" />
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/notes" />
 
-                    <com.google.android.material.tabs.TabItem
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/transcript" />
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/transcript" />
 
-                </com.google.android.material.tabs.TabLayout>
+            </com.google.android.material.tabs.TabLayout>
 
-                <androidx.viewpager2.widget.ViewPager2
-                    android:id="@+id/tabPager"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:background="@color/background_primary"/>
-
-                <!-- Bottom bar goes here if you have one -->
-            </LinearLayout>
+            <!-- ViewPager2 for Tab Content -->
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/tabPager"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@color/background_primary"/>
 
             <!-- Tab Content Container -->
             <FrameLayout
                 android:id="@+id/tabContentContainer"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginTop="@dimen/dimen_8dp"
+                android:layout_height="wrap_content"
                 android:background="@color/background_primary"
-                android:minHeight="@dimen/dimen_400dp">
+               >
+
+            <!-- Bottom Action Bar -->
+
 
 
 

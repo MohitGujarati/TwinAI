@@ -20,13 +20,20 @@ class MemoryTranscriptAdapter(
         private val tvDate = itemView.findViewById<TextView>(R.id.meetingDate)
         private val tvTimePeriod = itemView.findViewById<TextView>(R.id.meetingTimePeriod)
         private val tvTotalTime = itemView.findViewById<TextView>(R.id.meetingTotalTime)
+        private val tvDescription = itemView.findViewById<TextView>(R.id.meetingdescribtion)
+        private val tvTitle = itemView.findViewById<TextView>(R.id.meetingdescribtion)
 
         fun bind(item: SessionDisplayItem) {
             val session = item.session
             tvDate.text = formatDateHeader(session.createdAt)
             tvTimePeriod.text = formatTimePeriod(session.createdAt)
             tvTotalTime.text = formatDuration(item.durationSeconds)
+            tvDescription.text = item.description // <--- set the actual text
+            tvTitle.text = session.title ?: "Untitled Recording"  // ← NEW
+
         }
+
+
 
         private fun formatDateHeader(millis: Long): String {
             val sdf = java.text.SimpleDateFormat("EEE, MMM d", java.util.Locale.getDefault())
@@ -36,10 +43,17 @@ class MemoryTranscriptAdapter(
             val sdf = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
             return sdf.format(java.util.Date(millis))
         }
+        // IMPROVED: formatDuration() to show exact seconds
         private fun formatDuration(seconds: Int): String {
             val h = seconds / 3600
             val m = (seconds % 3600) / 60
-            return if (h > 0) "${h}h ${m}m" else "${m}m"
+            val s = seconds % 60
+
+            return when {
+                h > 0 -> "${h}h ${m}m"      // 1h 25m
+                m > 0 -> "${m}m ${s}s"      // 5m 30s ← IMPROVED
+                else -> "${s}s"             // 45s    ← IMPROVED
+            }
         }
     }
 
@@ -67,5 +81,7 @@ class MemoryTranscriptAdapter(
 
 data class SessionDisplayItem(
     val session: TranscriptSessionEntity,
-    val durationSeconds: Int
+    val durationSeconds: Int,
+    val description: String
 )
+

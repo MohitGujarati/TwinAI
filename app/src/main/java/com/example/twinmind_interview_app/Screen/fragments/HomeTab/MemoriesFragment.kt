@@ -1,10 +1,12 @@
 package com.example.twinmind_interview_app.Screen.fragments.HomeTab
 
 import android.os.Bundle
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.twinmind_interview_app.R
@@ -33,6 +35,9 @@ class MemoriesFragment : Fragment() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
 
+
+
+
         // Init DAOs
         val db = NewTranscriptDatabase.getDatabase(requireContext())
         sessionDao = db.sessionDao()
@@ -42,15 +47,18 @@ class MemoriesFragment : Fragment() {
             val sessions = sessionDao.getAllSessions()
             val sessionDisplayItems = sessions.map { session ->
                 val segments = segmentDao.getSegmentsForSession(session.id)
-                val duration = if (segments.isNotEmpty())
-                    segments.last().endTime - segments.first().startTime
+                val duration = if (segments.isNotEmpty()) segments.last().endTime - segments.first().startTime
                 else 0
-                SessionDisplayItem(session, duration)
+                val description = session.title ?: "No Title"
+                SessionDisplayItem(session, duration, description)
+
             }
             withContext(Dispatchers.Main) {
-                adapter.setItems(sessionDisplayItems) // Pass the list, not the class
+                adapter.setItems(sessionDisplayItems)
             }
         }
+
+
 
         return view
     }
