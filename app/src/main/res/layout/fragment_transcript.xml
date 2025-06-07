@@ -42,6 +42,17 @@
                 android:textSize="14sp"
                 android:textStyle="bold" />
 
+            <com.airbnb.lottie.LottieAnimationView
+                android:id="@+id/progressBar"
+                android:layout_width="@dimen/dimen_48dp"
+                android:layout_height="@dimen/dimen_48dp"
+                android:layout_gravity="center"
+                android:visibility="gone"
+                app:lottie_fileName="eEQ1XecEGv.json"
+                app:lottie_autoPlay="true"
+                app:lottie_loop="true" />
+
+
             <TextView
                 android:id="@+id/tvTranscriptFull"
                 android:layout_width="match_parent"

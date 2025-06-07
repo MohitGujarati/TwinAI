@@ -82,6 +82,12 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.2.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.3.0")
 
+    //Material design
+    implementation(libs.material)
+    implementation ("com.airbnb.android:lottie:6.4.0")
+
+
+
     //Location
     implementation("com.google.android.gms:play-services-location:21.0.1")
 

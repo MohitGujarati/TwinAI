@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.fragment.app.activityViewModels
+import com.airbnb.lottie.LottieAnimationView
 import com.example.twinmind_interview_app.R
 import com.example.twinmind_interview_app.Screen.AudioRecActivity
 import com.example.twinmind_interview_app.viewmodel.ChatViewModel
@@ -16,6 +17,8 @@ import com.example.twinmind_interview_app.database.NewRoomdb.NewTranscriptSegmen
 class TranscriptFragment : Fragment() {
     private val viewModel: ChatViewModel by activityViewModels()
     private lateinit var transcriptTextView: TextView
+    private lateinit var progressBar: LottieAnimationView
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -24,6 +27,7 @@ class TranscriptFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_transcript, container, false)
         transcriptTextView = view.findViewById(R.id.tvTranscriptFull)
         val timerTextView = view.findViewById<TextView>(R.id.tv_recording_time)
+        progressBar = view.findViewById(R.id.progressBar)
 
         viewModel.sessionTranscript.observe(viewLifecycleOwner) { updateTranscriptDisplay() }
         viewModel.liveTranscript.observe(viewLifecycleOwner) { updateTranscriptDisplay() }
@@ -32,6 +36,21 @@ class TranscriptFragment : Fragment() {
         viewModel.recordingTime.observe(viewLifecycleOwner) { timeText ->
             timerTextView?.text = timeText ?: "00:00"
         }
+        viewModel.isLoading.observe(viewLifecycleOwner) { isLoading ->
+            if (isLoading == true) {
+                progressBar.visibility = View.VISIBLE
+                progressBar.playAnimation()
+                transcriptTextView.visibility = View.INVISIBLE
+                timerTextView.visibility = View.INVISIBLE
+            } else {
+                progressBar.visibility = View.GONE
+                progressBar.cancelAnimation()
+                transcriptTextView.visibility = View.VISIBLE
+                timerTextView.visibility = View.VISIBLE
+            }
+        }
+
+
         return view
     }
 
@@ -60,7 +79,7 @@ class TranscriptFragment : Fragment() {
                 else "[Live]: $liveBuffer"
             savedText.isNotBlank() -> savedText
             isRecording -> "Listening... Speak to start transcription."
-            else -> "No transcript available. Start recording to generate transcript."
+            else -> "Generating transcript..."
         }
 
         transcriptTextView.text = displayText

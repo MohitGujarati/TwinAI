@@ -26,6 +26,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     val summary: LiveData<String?> = _summary
     val aiEnhancedTranscript = MutableLiveData<String>()
     val liveTranscript = MutableLiveData<String>()
+    val isLoading = MutableLiveData<Boolean>()
+
 
     // ==== CHANGES START HERE ====
 
@@ -160,6 +162,8 @@ This is your task no need to say to user -> here you will have data of user save
 
 
     suspend fun enhanceTranscriptWithGemini(prompt: String, apiKey: String): String {
+        isLoading.postValue(true)
+        kotlinx.coroutines.delay(700)
         return try {
             val request = GeminiRequest(
                 contents = listOf(
@@ -181,11 +185,17 @@ This is your task no need to say to user -> here you will have data of user save
         } catch (e: Exception) {
             e.printStackTrace()
             "Could not improve transcript. Showing raw version:\n$prompt"
+        } finally {
+            isLoading.postValue(false)
         }
     }
 
     // Now takes sessionId param
-    fun forceRefreshSummary(transcriptDao: NewTranscriptSegmentDao, apiKey: String, sessionId: Long) {
+    fun forceRefreshSummary(
+        transcriptDao: NewTranscriptSegmentDao,
+        apiKey: String,
+        sessionId: Long
+    ) {
         _summary.value = null
         generateSummary(transcriptDao, apiKey, sessionId)
     }
@@ -247,7 +257,6 @@ This is your task no need to say to user -> here you will have data of user save
     fun setLiveTranscript(text: String) {
         liveTranscript.value = text
     }
-
 
 
     fun refreshTranscript(segmentDao: NewTranscriptSegmentDao, sessionId: Long) {
