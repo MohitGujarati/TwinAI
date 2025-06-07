@@ -24,6 +24,7 @@ The app is currently in the development phase. Please contact the developer for 
       <img src="https://github.com/user-attachments/assets/4201e8fe-3389-4285-baa1-00c1205cfa9d" width="140"/>
       <img src="https://github.com/user-attachments/assets/947cad03-5c0e-4606-a26b-c5fa6d39b1f6" width="140"/>
       <img src="https://github.com/user-attachments/assets/ba3901cb-5de2-4106-91d2-e00e59035a66" width="140"/>
+      <img src="https://github.com/user-attachments/assets/b18c1794-c133-4aa4-a4fb-aa2f4fb60c9c" width="140"/>
       <img src="https://github.com/user-attachments/assets/f05f6671-992f-426c-a339-6c190a832eef" width="140"/>
       <img src="https://github.com/user-attachments/assets/88574bb7-45a3-4e32-b618-8eed80f6795a" width="140"/>
       <img src="https://github.com/user-attachments/assets/ea656e08-b153-41d3-98e5-49bf2807b5c4" width="140"/>
