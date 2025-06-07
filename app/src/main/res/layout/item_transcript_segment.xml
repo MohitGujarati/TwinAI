@@ -22,7 +22,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="@dimen/dimen_16dp">
 
         <TextView
             android:id="@+id/tv_recording_time"
@@ -31,9 +31,9 @@
             android:layout_margin="20dp"
             android:layout_marginBottom="4dp"
             android:fontFamily="sans-serif"
-            android:text="00:00"
+            android:text="@string/_00_00"
             android:textColor="#8e8e93"
-            android:textSize="14sp"
+            android:textSize="@dimen/dimen_14sp"
             android:textStyle="bold" />
 
         <TextView
@@ -42,9 +42,9 @@
             android:layout_height="match_parent"
             android:fontFamily="sans-serif"
             android:padding="@dimen/dimen_12sp"
-            android:text="@string/text_will_appear_here_onces_recording_is_stoped"
+            android:text="@string/transcript_generation_on_way"
             android:textColor="@color/black"
-            android:textSize="16sp" />
+            android:textSize="@dimen/dimen_16sp" />
     </LinearLayout>
 </androidx.cardview.widget.CardView>
 

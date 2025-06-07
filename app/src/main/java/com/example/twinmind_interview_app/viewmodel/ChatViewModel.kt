@@ -243,6 +243,7 @@ This is your task no need to say to user -> here you will have data of user save
         aiEnhancedTranscript.value = text
     }
 
+
     fun setLiveTranscript(text: String) {
         liveTranscript.value = text
     }

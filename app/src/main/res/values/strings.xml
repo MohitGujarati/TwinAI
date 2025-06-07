@@ -39,7 +39,7 @@
     <!-- Content -->
 
     <string name="click_edit_notes">Click \'Edit Notes\' to add your own notes or provide instructions to regenerate summary (e.g. correct spellings to fix transcription errors)</string>
-    <string name="start_typing_notes">Start typing your notes...</string>
+    <string name="start_typing_notes">Start typing your notes…</string>
 
     <!-- Recording -->
     <string name="recording">Recording</string>
@@ -54,7 +54,7 @@
 
     <!-- Messages -->
     <string name="no_content">No content available</string>
-    <string name="loading">Loading...</string>
+    <string name="loading">Loading…</string>
     <string name="error_occurred">An error occurred</string>
 
     <!-- Accessibility -->
@@ -85,11 +85,13 @@
     </string>
     <string name="twinmind_is_listening_in_the_background">TwinMind is listening in the background</string>
     <string name="audio_wave_indicator">Audio wave indicator</string>
-    <string name="loading_calendar_events">Loading calendar events...</string>
+    <string name="loading_calendar_events">Loading calendar events…</string>
     <string name="public_speaking_practice">Public Speaking Practice</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
-    <string name="loading_events">Loading events...</string>
+    <string name="loading_events">Loading events…</string>
+    <string name="transcript_generation_on_way">Transcript Generation on way .....</string>
+    <string name="_00_00">00:00</string>
     >
 
 </resources>

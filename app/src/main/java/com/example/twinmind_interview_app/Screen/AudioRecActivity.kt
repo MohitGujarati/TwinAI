@@ -70,6 +70,7 @@ class AudioRecActivity : AppCompatActivity() {
     private var timer: CountDownTimer? = null
     private var secondsElapsed = 0
 
+
     private var transcriptText: String = ""
     private var transcriptTime: String = "00:00"
     private var continueListening = false
@@ -326,57 +327,65 @@ class AudioRecActivity : AppCompatActivity() {
         viewModel.setLiveTranscript("") // Hide live transcript after stop
         Log.d("TranscriptDebug", "STOP clicked. isRecording=$isRecording currentSegmentText='$currentSegmentText' sessionId=$currentSessionId")
 
-        // Save the last segment if any (just in case the timer didn’t hit 30 seconds)
+        // Use AI to enhance and segment the complete transcript
         CoroutineScope(Dispatchers.IO).launch {
-            saveCurrentSegmentSync()
-        }.join()
+            val isOnline = NetworkUtils.isInternetAvailable(this@AudioRecActivity)
+            if (isOnline && transcriptText.trim().isNotEmpty()) {
+                try {
+                    Log.d("TranscriptDebug", "Using AI to enhance and segment complete transcript (${secondsElapsed}s)")
+                    val aiSegments = aiEnhanceAndSegmentTranscript(transcriptText, secondsElapsed)
 
-        // Get all transcript segments for THIS session in correct order
-        val allSegments = withContext(Dispatchers.IO) {
-            newTranscriptDao.getSegmentsForSession(currentSessionId)
-        }
-        Log.d("TranscriptDebug", "All loaded segments: $allSegments")
+                    // Save all AI-generated segments
+                    for (segment in aiSegments) {
+                        newTranscriptDao.insertSegment(segment)
+                    }
 
-        // Format transcript
-        val rawTranscriptWithTimestamps = buildString {
-            if (allSegments.isEmpty()) {
-                append("No transcript available yet.")
+                    Log.d("TranscriptDebug", "AI created ${aiSegments.size} enhanced segments")
+
+                    // Set the enhanced transcript for display
+                    val enhancedTranscript = aiSegments.joinToString("\n\n") { segment ->
+                        "[${formatTime(segment.startTime)} - ${formatTime(segment.endTime)}]: ${segment.text}"
+                    }
+                    withContext(Dispatchers.Main) {
+                        viewModel.setAiEnhancedTranscript(enhancedTranscript)
+                    }
+
+                } catch (e: Exception) {
+                    Log.e("TranscriptDebug", "AI segmentation failed: ${e.message}")
+                    // Fallback: create single segment with complete transcript
+                    val fallbackSegment = NewTranscriptSegmentEntity(
+                        sessionId = currentSessionId,
+                        text = transcriptText.trim(),
+                        startTime = 0,
+                        endTime = secondsElapsed
+                    )
+                    newTranscriptDao.insertSegment(fallbackSegment)
+                    withContext(Dispatchers.Main) {
+                        viewModel.setAiEnhancedTranscript(transcriptText)
+                    }
+                }
             } else {
-                for (seg in allSegments) {
-                    append("[${formatTime(seg.startTime)} - ${formatTime(seg.endTime)}]: ")
-                    append(seg.text.trim())
-                    append("\n\n")
+                // Offline or no content: create single segment
+                if (transcriptText.trim().isNotEmpty()) {
+                    val segment = NewTranscriptSegmentEntity(
+                        sessionId = currentSessionId,
+                        text = transcriptText.trim(),
+                        startTime = 0,
+                        endTime = secondsElapsed
+                    )
+                    newTranscriptDao.insertSegment(segment)
+                    Log.d("TranscriptDebug", "Saved offline transcript: [0:00 - ${formatTime(secondsElapsed)}]")
+                }
+                withContext(Dispatchers.Main) {
+                    viewModel.setAiEnhancedTranscript(transcriptText)
                 }
             }
-        }
-
-        // Check if online and prepare the final transcript for display
-        val isOnline =
-            NetworkUtils.isInternetAvailable(this@AudioRecActivity)
-        var displayTranscript: String
-        if (isOnline) {
-            try {
-                val enhanced = aiEnhanceTranscript(rawTranscriptWithTimestamps)
-                viewModel.setAiEnhancedTranscript(enhanced)
-                displayTranscript = "\n\n$enhanced"
-            } catch (e: Exception) {
-                Log.e("TranscriptDebug", "AI Enhance error: ${e.message}")
-                viewModel.setAiEnhancedTranscript(rawTranscriptWithTimestamps)
-                displayTranscript = "\n\n$rawTranscriptWithTimestamps"
-            }
-        } else {
-            viewModel.setAiEnhancedTranscript(rawTranscriptWithTimestamps)
-            displayTranscript = "\n\n$rawTranscriptWithTimestamps"
-        }
-
-        // Update only via LiveData (don’t set TextView directly, let Fragment observe!)
-        viewModel.setAiEnhancedTranscript(displayTranscript)
+        }.join()
 
         withContext(Dispatchers.Main) {
             viewModel.forceRefreshSummary(newTranscriptDao, API_KEY, currentSessionId)
         }
     }
-
 
 
     // --- CHAT BOTTOM SHEET ---
@@ -569,14 +578,6 @@ class AudioRecActivity : AppCompatActivity() {
         timer = object : CountDownTimer(60 * 60 * 1000, 1000) {
             override fun onTick(millisUntilFinished: Long) {
                 secondsElapsed++
-                // Every 30 seconds, save the segment
-                if ((secondsElapsed - segmentStartTime) >= 30) {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        saveCurrentSegmentSync()
-                    }
-                    segmentStartTime = secondsElapsed
-                    currentSegmentText = ""
-                }
                 updateTimerText()
                 updateTranscriptAllUIs()
             }
@@ -732,5 +733,79 @@ class AudioRecActivity : AppCompatActivity() {
             $rawText
         """.trimIndent()
         return viewModel.enhanceTranscriptWithGemini(prompt, API_KEY)
+    }
+
+    //NewLogin when online
+    suspend fun aiEnhanceAndSegmentTranscript(completeTranscript: String, totalDurationSeconds: Int): List<NewTranscriptSegmentEntity> {
+        val prompt = """
+            You are a transcript processing assistant. I have a complete transcript from a ${totalDurationSeconds/60}:${String.format("%02d", totalDurationSeconds%60)} minute recording.
+            
+            Your task:
+            1. Enhance the text: Fix grammar, add punctuation, improve readability
+            2. Divide it into logical segments of approximately 30 seconds each
+            3. Each segment should end at natural speech breaks (end of sentences, pauses, topic changes)
+            4. Return the result in this EXACT format:
+            
+            SEGMENT_1|0:00-0:30|Enhanced text for first segment here.
+            SEGMENT_2|0:30-1:15|Enhanced text for second segment here.  
+            SEGMENT_3|1:15-2:00|Enhanced text for third segment here.
+            
+            Rules:
+            - Each line must start with "SEGMENT_X|"
+            - Time format: "MM:SS-MM:SS" 
+            - End time of last segment should be ${totalDurationSeconds/60}:${String.format("%02d", totalDurationSeconds%60)}
+            - Segment lengths can vary (20-45 seconds) to end at natural breaks
+            - Preserve all original content, just enhance and organize it
+            
+            Original transcript:
+            $completeTranscript
+        """.trimIndent()
+
+        val aiResponse = viewModel.enhanceTranscriptWithGemini(prompt, API_KEY)
+        Log.d("TranscriptDebug", "AI segmentation response: $aiResponse")
+
+        // Parse AI response into segments
+        val segments = mutableListOf<NewTranscriptSegmentEntity>()
+        val lines = aiResponse.split("\n").filter { it.trim().isNotEmpty() }
+
+        for (line in lines) {
+            if (line.startsWith("SEGMENT_") && line.contains("|")) {
+                try {
+                    val parts = line.split("|")
+                    if (parts.size >= 3) {
+                        val timeRange = parts[1]
+                        val text = parts.drop(2).joinToString("|") // In case text contains |
+
+                        val times = timeRange.split("-")
+                        if (times.size == 2) {
+                            val startTime = parseTimeToSeconds(times[0])
+                            val endTime = parseTimeToSeconds(times[1])
+
+                            val segment = NewTranscriptSegmentEntity(
+                                sessionId = currentSessionId,
+                                text = text.trim(),
+                                startTime = startTime,
+                                endTime = endTime
+                            )
+                            segments.add(segment)
+                            Log.d("TranscriptDebug", "Parsed segment: [${formatTime(startTime)} - ${formatTime(endTime)}]: ${text.take(50)}...")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("TranscriptDebug", "Error parsing segment line: $line", e)
+                }
+            }
+        }
+
+        return segments
+    }
+
+    private fun parseTimeToSeconds(timeStr: String): Int {
+        val parts = timeStr.trim().split(":")
+        return if (parts.size == 2) {
+            val minutes = parts[0].toIntOrNull() ?: 0
+            val seconds = parts[1].toIntOrNull() ?: 0
+            minutes * 60 + seconds
+        } else 0
     }
 }
