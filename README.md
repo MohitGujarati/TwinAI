@@ -1,11 +1,12 @@
-
 > ## 🚫 Usage Policy
-> This project and its code are for demonstration and academic submission only.  
+> This repository was created for an **interview assessment** only.
 > **Do NOT copy, use, or reproduce any part of this codebase without explicit written permission from the author.**
 >
 > To request permission, contact: [mohitgujarati.dev@gmail.com](mailto:mohitgujarati.dev@gmail.com)
 > AND
 > [mohitgujarati11@gmail.com](mailto:mohitgujarati11@gmail.com)
+>
+> 
 
 
 ## ✨ Overview
