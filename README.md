@@ -1,3 +1,14 @@
+> ## 🚫 Usage Policy
+> This repository was created for an **interview assessment** only.
+> **Do NOT copy, use, or reproduce any part of this codebase without explicit written permission from the author.**
+>
+> To request permission, contact: [mohitgujarati.dev@gmail.com](mailto:mohitgujarati.dev@gmail.com)
+> AND
+> [mohitgujarati11@gmail.com](mailto:mohitgujarati11@gmail.com)
+>
+> 
+
+
 ## ✨ Overview
 
 **TwinMind AI** is a smart AI assistant for meetings and interviews, built for Android in Kotlin.
@@ -9,16 +20,17 @@ The app is currently in the development phase. Please contact the developer for 
 ## 🎬 Screenshots
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/eea44f78-fe36-4262-8f4e-89f943f3745c" width="140"/>
-  <img src="https://github.com/user-attachments/assets/97e23bc9-a4b2-4c51-b594-5809b6c289a4" width="140"/>
-  <img src="https://github.com/user-attachments/assets/4201e8fe-3389-4285-baa1-00c1205cfa9d" width="140"/>
-  <img src="https://github.com/user-attachments/assets/947cad03-5c0e-4606-a26b-c5fa6d39b1f6" width="140"/>
-   <img src="https://github.com/user-attachments/assets/5c3781ee-3dfa-4d5e-86a7-9145742187d5" width="140"/>
-  <img src="https://github.com/user-attachments/assets/23302cc1-9b7b-401a-b92e-96751feafa9e" width="140"/>
-  <img src="https://github.com/user-attachments/assets/b6332adb-d48e-445d-8f15-bc77d2d9d2bd" width="140"/>
-  <img src="https://github.com/user-attachments/assets/a109934b-caf5-4de6-b2a9-8dcbeb6bf298" width="140"/>
-  <img src="https://github.com/user-attachments/assets/03127eda-efa1-4f4a-ac12-1c14c0d75f9b" width="140"/>
-  <img src="https://github.com/user-attachments/assets/c890d67a-43fb-472b-9ef5-91ea68cd6700" width="140"/>
+      <img src="https://github.com/user-attachments/assets/eea44f78-fe36-4262-8f4e-89f943f3745c" width="140"/> 
+      <img src="https://github.com/user-attachments/assets/4201e8fe-3389-4285-baa1-00c1205cfa9d" width="140"/>
+      <img src="https://github.com/user-attachments/assets/947cad03-5c0e-4606-a26b-c5fa6d39b1f6" width="140"/>
+      <img src="https://github.com/user-attachments/assets/ba3901cb-5de2-4106-91d2-e00e59035a66" width="140"/>
+      <img src="https://github.com/user-attachments/assets/b18c1794-c133-4aa4-a4fb-aa2f4fb60c9c" width="140"/>
+      <img src="https://github.com/user-attachments/assets/f05f6671-992f-426c-a339-6c190a832eef" width="140"/>
+      <img src="https://github.com/user-attachments/assets/88574bb7-45a3-4e32-b618-8eed80f6795a" width="140"/>
+      <img src="https://github.com/user-attachments/assets/ea656e08-b153-41d3-98e5-49bf2807b5c4" width="140"/>
+      <img src="https://github.com/user-attachments/assets/5c3781ee-3dfa-4d5e-86a7-9145742187d5" width="140"/>
+      <img src="https://github.com/user-attachments/assets/23302cc1-9b7b-401a-b92e-96751feafa9e" width="140"/>
+      <img src="https://github.com/user-attachments/assets/b6332adb-d48e-445d-8f15-bc77d2d9d2bd" width="140"/>
 </p>
 
 ---
@@ -74,19 +86,6 @@ cd TwinAI
 * **Android SpeechRecognizer / MediaRecorder**
 * **Material Design 3**
 * **MVVM Architecture**
-
----
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-
-1. Fork the repo
-2. Create your branch (`git checkout -b feature/your-feature`)
-3. Commit changes
-4. Push and open a Pull Request
-
-**Open to feedback and collaboration!**
 
 ---
 
