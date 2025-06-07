@@ -45,10 +45,20 @@ class MemoriesFragment : Fragment() {
 
         CoroutineScope(Dispatchers.IO).launch {
             val sessions = sessionDao.getAllSessions()
+            Log.d("MemoryDuration", "Found ${sessions.size} sessions")
             val sessionDisplayItems = sessions.map { session ->
                 val segments = segmentDao.getSegmentsForSession(session.id)
-                val duration = if (segments.isNotEmpty()) segments.last().endTime - segments.first().startTime
-                else 0
+                Log.d("MemoryDuration", "Session ${session.id} has ${segments.size} segments")
+                val duration = if (segments.isNotEmpty()) {
+                    val sortedSegments = segments.sortedBy { it.startTime }
+                    val totalDuration = sortedSegments.last().endTime
+
+                    Log.d("MemoryDuration", "Session ${session.id}: segments=${segments.size}, lastEnd=${totalDuration}s (${totalDuration/60}m ${totalDuration%60}s)")
+                    totalDuration
+                } else {
+                    Log.d("MemoryDuration", "Session ${session.id} has no segments")
+                    0
+                }
                 val description = session.title ?: "No Title"
                 SessionDisplayItem(session, duration, description)
 
