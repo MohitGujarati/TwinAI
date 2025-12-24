@@ -1,9 +1,19 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.google.gms.google.services)
     id("org.jetbrains.kotlin.kapt") // <--- Add this line exactly
 }
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
+
 fun propertyOrEmpty(name: String): String =
     if (project.hasProperty(name)) project.property(name) as String else ""
 
@@ -13,6 +23,7 @@ android {
 
 
     defaultConfig {
+
         applicationId = "com.example.twinmind_interview_app"
         minSdk = 24
         targetSdk = 35
@@ -22,20 +33,18 @@ android {
         vectorDrawables.useSupportLibrary = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // CHANGED: Now using 'localProperties.getProperty' instead of 'project.findProperty'
         buildConfigField(
             "String",
             "GEMINI_API_KEY",
-            "\"${project.findProperty("GEMINI_API_KEY")}\""
+            "\"${localProperties.getProperty("GEMINI_API_KEY")}\""
         )
         buildConfigField(
             "String",
             "CLIENT_ID",
-            "\"${project.findProperty("CLIENT_ID")}\""
+            "\"${localProperties.getProperty("CLIENT_ID")}\""
         )
-
     }
-
-
     buildTypes {
         release {
             isMinifyEnabled = false
